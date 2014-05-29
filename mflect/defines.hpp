@@ -22,17 +22,20 @@
 
 #pragma once
 
-#include <cassert>
 #include <stdexcept>
+#include <iostream>
 
 #ifndef MFLECT_ASSERT
 #define MFLECT_ASSERT(EXPRESSION) \
-    assert(EXPRESSION); \
+  if (!(EXPRESSION)) \
+  { \
+    throw std::runtime_error(#EXPRESSION); \
+  } \
 
 #endif // MFLECT_ASSERT
 
 #ifndef MFLECT_RUNTIME_ERROR
 #define MFLECT_RUNTIME_ERROR(MESSAGE) \
-    throw std::runtime_error(MESSAGE); \
+  throw std::runtime_error(MESSAGE); \
 
 #endif // MFLECT_RUNTIME_ERROR
