@@ -150,11 +150,6 @@ public:
   inline bool is_kind_of(const type_info* typeInfo) const;
 
   /**
-   * @see is_kind_of
-   */
-  inline bool is_kind_of(const char* typeName) const;
-
-  /**
    * @brief GetInheritanceDepth
    */
   inline unsigned GetInheritanceDepth() const;
@@ -168,13 +163,13 @@ public:
   static std::string GetTypeDescriptionString(const std::string& typeName, unsigned depth = 0);
 
   /**
-   * @brief Cast
+   * @brief cast
    * @param instance
-   * @param typeName
+   * @param typeInfo
    * @return
    */
   template <typename T>
-  T* cast(void* instance, const char* typeName);
+  T* cast(void* instance, type_info* typeInfo);
 
   /**
    * @brief type_info_register
@@ -191,15 +186,22 @@ protected:
 
 //==============================================================================
 template <typename T>
-T* type_info::cast(void* instance, const char* typeName)
+T* type_info::cast(void* instance, type_info* typeInfo)
 {
-  type_info* typeInfo = GetRunTimeTypeInfo(instance);
+  type_info* typeInfoFrom = type_info_run_time(instance);
+  MFLECT_ASSERT(typeInfoFrom != nullptr);
   MFLECT_ASSERT(typeInfo != nullptr);
-  if (typeInfo->is_kind_of(typeName))
+
+  if (cast_table_()[typeInfoFrom->typeId_ * type_count_() + typeInfo->typeId_])
   {
     return static_cast<T*>(instance);
   }
-  return nullptr;
+  else
+  {
+    return nullptr;
+  }
+}
+
 //==============================================================================
 type_info* type_info::base() const
 {
@@ -297,11 +299,6 @@ bool type_info::is_kind_of(const type_info* typeInfo) const
 }
 
 //==============================================================================
-bool type_info::is_kind_of(const char* typeName) const
-{
-  return is_kind_of(type_info::GetTypeInfo(typeName));
-}
-
 unsigned type_info::GetInheritanceDepth() const
 {
   unsigned r = 0;
@@ -330,17 +327,20 @@ type_info::db_type& type_info::db_()
   static type_info::db_type db;
   return db;
 }
+{
+}
+
+//==============================================================================
 template <typename T, typename F>
-inline T* cast(F* from, const char* typeName)
+inline T* cast(F* from, type_info* typeInfo)
 {
   if (from != nullptr)
   {
-    return from->type_info_run_time()->cast<T>(from, typeName);
+    return from->type_info_run_time()->cast<T>(from, typeInfo);
   }
   else
   {
     return nullptr;
   }
 }
-
 } // namespace mflect

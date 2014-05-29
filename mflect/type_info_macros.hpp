@@ -24,7 +24,7 @@
 
 //==============================================================================
 #define MFLECT_CAST(WHAT, TO)                                                  \
-  mflect::cast<TO>(WHAT, #TO)                                                  \
+  mflect::cast<TO>(WHAT, TO::type_info_static())                               \
 
 //==============================================================================
 #define MFLECT_INTERNAL_TYPE_INFO_DECLARATION_BEGIN_(TYPE)                     \
