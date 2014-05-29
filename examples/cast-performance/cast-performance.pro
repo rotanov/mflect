@@ -17,9 +17,14 @@ gcc {
     QMAKE_CXXFLAGS += -Wno-unused-variable
 }
 
+#QMAKE_CXXFLAGS_RELEASE -= -O2
+#gcc: QMAKE_CXXFLAGS_RELEASE += -O0
+#msvc: QMAKE_CXXFLAGS_RELEASE += /Od
+
 DESTDIR = ../../bin
 
-INCLUDEPATH += ../../
+INCLUDEPATH += ../../ \
+  ../../tests
 
 CONFIG(debug, debug|release) {
 
@@ -34,5 +39,9 @@ CONFIG(debug, debug|release) {
 
 }
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    ../../tests/test_classes.cpp
+
+HEADERS += \
+    ../../tests/test_classes.hpp
 

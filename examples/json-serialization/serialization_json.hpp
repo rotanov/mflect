@@ -20,22 +20,35 @@
  * IN THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef _2DE_SERIALIZATION_H_
-#define _2DE_SERIALIZATION_H_
+#pragma once
 
 #include <string>
 
-namespace Deku2D
+namespace persistence
 {
-    namespace Serialization
-    {
-        // @todo: Serialize to (and from) abstract stream, not file^W char buffer.
-        unsigned ToJSON(const void* instance, const std::string& typeName, char*& buffer);
-        void FromJSON(void* instance, const std::string& typeName, char* buffer);
+/**
+ * @brief to_json
+ * @param instance
+ * @param typeName
+ * @param buffer
+ * @return strlen() of buffer. Buffer allocation size is strlen(buffer) + 1
+ * @todo: Serialize to/from abstract stream, not char buffer. Or not.
+ */
+unsigned to_json(const void* instance, const std::string& typeName, char*& buffer);
 
-        std::string ExtractTopLevelTypeName(char* buffer);
-    }    // namespace Serialization
+/**
+ * @brief from_json
+ * @param instance
+ * @param typeName
+ * @param buffer
+ */
+void from_json(void* instance, const std::string& typeName, char* buffer);
 
-}    // namespace Deku2D
+/**
+ * @brief Extracts top level type name assuming buffer is a result of to_json.
+ * @param buffer
+ * @return
+ */
+std::string extract_type_name(char* buffer);
 
-#endif //    _2DE_SERIALIZATION_H_
+} // namespace persistence

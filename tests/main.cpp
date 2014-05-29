@@ -1,14 +1,15 @@
 #include <iostream>
 
+#include "mflect/mflect.hpp"
 #include "test_classes.hpp"
 
 std::string mflect::type_info::GetTypeDescriptionString(const std::string& typeName, unsigned depth)
 {
   using namespace mflect;
-  if (type_info_register()[typeName] == 0)
+  if (db().find(typeName) == db().end())
       return "Type info record for type \"" + typeName + "\" doesn't exist.\n";
 
-  type_info& typeInfo= *type_info_register()[typeName];
+  type_info& typeInfo = *db().at(typeName);
   std::string identStr(depth, '\t');
   std::string identStr1 = identStr + "\t";
   std::string identStr2 = identStr + "\t\t";
@@ -38,11 +39,11 @@ std::string mflect::type_info::GetTypeDescriptionString(const std::string& typeN
       r += eolStr;
   }
 
-  if (typeInfo.base_info() != nullptr
-      && typeInfo.base_info() != &typeInfo)
+  if (typeInfo.base() != nullptr
+      && typeInfo.base() != &typeInfo)
   {
       r += eolStr;
-      std::string baseName = typeInfo.base_info()->name();
+      std::string baseName = typeInfo.base()->name();
       r += identStr1 + "Derived from type: \"" + baseName + "\"" + eolStr;
       r += type_info::GetTypeDescriptionString(baseName, depth + 1);
   }
@@ -52,84 +53,59 @@ std::string mflect::type_info::GetTypeDescriptionString(const std::string& typeN
 
 using namespace std;
 
-MFLECT_TYPE_INFO_DECLARE(Foo)
-
 int main()
 {
-  mflect::type_info::initialize();
+  mflect::initialize();
+
+
+#define TEST(EXPRESSION) \
+  if (EXPRESSION) \
+  { \
+    std::cout << "test: pass, line: " << __LINE__ << std::endl; \
+  } \
+  else \
+  { \
+    std::cout << "test: fail, line: " << __LINE__ << std::endl; \
+  } \
+
+#define TYPE_INFO(TYPE) \
+  mflect::type_info::find_type_info(#TYPE) \
 
   Foo foo;
   Bar bar;
-  std::cout << foo.GetTypeInfo()->name() << std::endl;
-  std::cout << bar.GetTypeInfo()->name() << std::endl;
-  Foo* bar_ptr = &bar;
-  std::cout << bar_ptr->GetTypeInfo()->name() << std::endl;
-  std::cout << bar_ptr->GetTypeInfo()->is_kind_of("Bar") << std::endl;
-  std::cout << bar_ptr->GetTypeInfo()->is_kind_of("Foo") << std::endl;
-  std::cout << MFLECT_CAST(&foo, Bar) << std::endl;
-  std::cout << MFLECT_CAST(&bar, Foo) << std::endl;
-  std::cout << MFLECT_CAST(&bar, Bar) << std::endl;
+  Foo* ptrBar = &bar;
+  TEST(foo.type_info_run_time()->name() == std::string("Foo"));
+  TEST(bar.type_info_run_time()->name() == std::string("Bar"));
+  TEST(ptrBar->type_info_run_time()->name() == std::string("Bar"));
+  TEST(ptrBar->type_info_run_time()->is_kind_of(TYPE_INFO(Bar)));
+  TEST(ptrBar->type_info_run_time()->is_kind_of(TYPE_INFO(Foo)));
+  TEST(MFLECT_CAST(&foo, Bar) == nullptr);
+  TEST(MFLECT_CAST(ptrBar, Foo) != nullptr);
+  TEST(MFLECT_CAST(ptrBar, Bar) != nullptr);
+  TEST(TYPE_INFO(Foo) != nullptr);
+  TEST(TYPE_INFO(Bar) != nullptr);
+  TEST(TYPE_INFO(Foo)->base() == nullptr);
+  TEST(TYPE_INFO(Bar)->base() == TYPE_INFO(Foo));
+  TEST(TYPE_INFO(A_Foo)->base() == TYPE_INFO(Foo));
+  TEST(TYPE_INFO(B_A)->base() == TYPE_INFO(A_Foo));
+  TEST(TYPE_INFO(C_B)->base() == TYPE_INFO(B_A));
+  {
+    Vector2 foo;
+    foo.x = 2.0f;
+    TEST(TYPE_INFO(Vector2)->find_property("X") != nullptr);
+    TEST(TYPE_INFO(Vector2)->find_property("Y") != nullptr);
+    float value = 0.0f;
+    void* ptrValue = &value;
+    TYPE_INFO(Vector2)->find_property("X")->GetValue(&foo, ptrValue);
+    TEST(value == 2.0f);
+    value = 4.0f;
+    TYPE_INFO(Vector2)->find_property("X")->SetValue(&foo, &value);
+    TEST(foo.x == 4.0f);
+    auto def_attr = mflect::property_attribute_default::get(TYPE_INFO(Vector2)->find_property("Y"));
+    TEST(def_attr != nullptr)
+    TEST(def_attr->test(&foo) == true);
+  }
 
-//  class Foo
-//  {
-//  public:
-//    virtual void derp() = 0;
-//  };
-
-//  class Bar : public Foo
-//  {
-
-//  };
-
-//  class Hurr : public Foo
-//  {
-//  public:
-//    virtual void derp()
-//    {
-
-//    }
-//  };
-
-//  try
-//  {
-//    auto i = mflect::make<Foo>::instance();
-//  }
-//  catch (runtime_error& e)
-//  {
-//    cout << e.what() << endl;;
-//  }
-
-//  try
-//  {
-//    auto i = mflect::make<Bar>::instance();
-//  }
-//  catch (runtime_error& e)
-//  {
-//    cout << e.what() << endl;;
-//  }
-
-//  try
-//  {
-//    auto i = mflect::make<Hurr>::instance();
-//  }
-//  catch (runtime_error& e)
-//  {
-//    cout << e.what() << endl;
-//  }
-
-//  try
-//  {
-//    auto i = mflect::make<Foo*>::instance();
-//  }
-//  catch (runtime_error& e)
-//  {
-//    cout << e.what() << endl;
-//  }
-
-//  cout << mflect::is_integral<string>::value;
-//  cout << mflect::is_integral<Foo>::value;
-
-//  cout << endl << mflect::type_info::GetTypeDescriptionString("Foo") << endl;
   return 0;
 }
 

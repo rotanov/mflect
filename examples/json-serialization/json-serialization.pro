@@ -36,5 +36,9 @@ CONFIG(debug, debug|release) {
 
 }
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    serialization_json.cpp
+
+HEADERS += \
+    serialization_json.hpp
 

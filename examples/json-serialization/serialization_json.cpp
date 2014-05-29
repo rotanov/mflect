@@ -20,7 +20,9 @@
  * IN THE SOFTWARE.
  ******************************************************************************/
 
-#include "2de_Serialization.h"
+#include <unordered_map>
+
+#include "serialization_json.hpp"
 
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
@@ -29,371 +31,363 @@
 #include "rapidjson/filestream.h"
 #include "rapidjson/stringbuffer.h"
 
-#include "2de_TypeInfo.h"
-#include "2de_PropertyAttributes.hpp"
-#include "2de_Core.h"
+#include "mflect/mflect.hpp"
 
-#ifdef TARGET_EDITOR
-    #include <QDebug>
-    #include "gengine.h"
-#endif
-
-namespace Deku2D
-{
-namespace Serialization
+namespace persistence
 {
 using namespace rapidjson;
+using namespace mflect;
 
 class CStateInfo
 {
 public:
-    std::map<void*, int> addressTable;
-    int ptrCount;
-    unsigned depth;
-//            FileStream fileStream;
-    StringBuffer stringBuffer;
-    PrettyWriter<StringBuffer> writer;
-//            rapidjson::Writer<StringBuffer> writer;
+  std::unordered_map<void*, int> addressTable;
+  int ptrCount;
+  unsigned depth;
+  //            FileStream fileStream;
+  StringBuffer stringBuffer;
+  PrettyWriter<StringBuffer> writer;
+  //            rapidjson::Writer<StringBuffer> writer;
 
-    CStateInfo()
-        : ptrCount(0)
-        , writer(stringBuffer)
-        , depth(0)
-    {
-    }
+  CStateInfo()
+    : ptrCount(0)
+    , writer(stringBuffer)
+    , depth(0)
+  {
+  }
 };
 
 static void Helper(CStateInfo& state, const void* next, const std::string &nextName)
 {
-    state.depth++;
-    state.writer.StartObject();
+  state.depth++;
+  state.writer.StartObject();
 
-    TypeInfo *typeInfo = TypeInfo::GetTypeInfo(nextName);
-    bool hadDerived = false;
-    while (typeInfo->HasDerived())
+  mflect::type_info* typeInfo = mflect::type_info::find_type_info(nextName);
+  MFLECT_ASSERT(typeInfo != nullptr);
+  bool hadDerived = false;
+  while (typeInfo->has_derived())
+  {
+    if (typeInfo == typeInfo->type_info_run_time(next))
     {
-        if (typeInfo == typeInfo->GetRunTimeTypeInfo(next))
-        {
-            break;    // TODO: костыль убрать.
-        }
-        hadDerived = true;
-        typeInfo = typeInfo->GetRunTimeTypeInfo(next);
+      break;    // TODO: костыль убрать.
     }
+    hadDerived = true;
+    typeInfo = typeInfo->type_info_run_time(next);
+  }
 
-    if (state.depth == 1 || hadDerived)
+  if (state.depth == 1 || hadDerived)
+  {
+    state.writer.String("@type");
+    state.writer.String(typeInfo->name());
+  }
+
+  while (typeInfo)
+  {
+    auto& props = typeInfo->properties();
+    for (auto i : props)
     {
-        state.writer.String("@type");
-        state.writer.String(typeInfo->Name());
-    }
+      property_info& p = *i.second;
 
-    while (typeInfo)
-    {
-        map<string, PropertyInfo*> &props = typeInfo->Properties();
-        for (map<string, PropertyInfo*>::iterator i = props.begin(); i != props.end(); ++i)
+      const char* propertyName = p.name();
+      const char* propertyOwnerName = p.owner_type_name();
+      const char* propertyTypeName = p.type_name();
+
+      auto defaultAttr = property_attribute_default::get(&p);
+      if (defaultAttr != nullptr)
+      {
+        if (defaultAttr->test(next))
         {
-            PropertyInfo& p = *i->second;
-
-            const char* propertyName = p.Name();
-            const char* propertyOwnerName = p.OwnerName();
-            const char* propertyTypeName = p.TypeName();
-
-            if (PropertyAttributeDefault::Exist(&p))
-            {
-                if (PropertyAttributeDefault::Get(&p)->Test(next))
-                {
-                    continue;
-                }
-            }
-
-            if (p.Integral())
-            {
-                if (p.IsPointer())
-                {
-                    void* value = NULL;
-                    p.GetValue(next, value);
-                    std::string stringValue = p.GetTypeInfo()->GetString(value);
-                    state.writer.String(p.Name());
-                    state.writer.String(stringValue.c_str());
-                }
-                else
-                {
-                    void* value = p.GetTypeInfo()->New();
-                    p.GetValue(next, value);
-                    std::string stringValue = p.GetTypeInfo()->GetString(value);
-                    state.writer.String(p.Name());
-                    state.writer.String(stringValue.c_str());
-                    delete value;
-                }
-            }
-            else if (p.IsArray())
-            {
-                if (p.GetArraySize(next) == 0)
-                {
-                    continue;
-                }
-
-                state.writer.String(p.Name());
-                state.writer.StartArray();
-
-                TypeInfo* elementInfo = p.GetTypeInfo();
-
-                if(elementInfo->IsIntegral())
-                {
-                    for (int j = 0; j < p.GetArraySize(next); j++)
-                    {
-                        // TODO: missing array of pointers to integrals like std::vector<int*>
-                        void* value = elementInfo->New();
-                        p.GetValue(next, value, j);
-                        state.writer.String(elementInfo->GetString(value).c_str());
-                        delete value;
-                    }
-                }
-                else
-                {
-                    for (int j = 0; j < p.GetArraySize(next); j++)
-                    {
-                        if (p.IsPointer())
-                        {
-                            void* value = NULL;
-                            p.GetValue(next, value, j);
-                            Helper(state, value, elementInfo->Name());
-                        }
-                        else
-                        {
-                            void* value = p.GetTypeInfo()->New();
-                            p.GetValue(next, value, j);
-                            Helper(state, value, elementInfo->Name());
-                            delete value;
-                        }
-                    }
-                }
-                state.writer.EndArray();
-            }
-            else
-            {
-                state.writer.String(p.Name());
-                bool alreadySerialized = false;
-                bool nullPtr = false;
-                if (p.IsPointer())
-                {
-                    void* value = NULL;
-                    p.GetValue(next, value);
-
-                    if (value == 0)
-                    {
-                        nullPtr = true;
-                    }
-
-                    if (nullPtr)
-                    {
-                        state.writer.String("0");
-                    }
-                    else
-                    {
-                        alreadySerialized = state.addressTable.count(value) == 1;
-                        if (alreadySerialized)
-                        {
-                            state.writer.String(("@ptr" + Convert<int>::
-                                ToString(state.addressTable[value])).c_str());
-
-                        }
-                        else
-                        {
-                            state.ptrCount++;
-                            state.addressTable[value] = state.ptrCount;
-                            state.writer.StartObject();
-                            state.writer.String("@ptr");
-                            state.writer.String(Convert<int>::ToString(state.ptrCount).c_str());
-                            state.writer.String("@value");
-                        }
-                    }
-                }
-
-                if (!alreadySerialized && !nullPtr)
-                {
-                    // TODO: seems fishy
-                    if (p.IsPointer())
-                    {
-                        void *value = NULL;
-                        p.GetValue(next, value);
-                        Helper(state, value, p.TypeName());
-                        state.writer.EndObject();
-                    }
-                    else
-                    {
-                        void *value = p.GetTypeInfo()->New();
-                        p.GetValue(next, value);
-                        Helper(state, value, p.TypeName());
-                        delete value;
-                    }
-                }
-            }
+          continue;
         }
+      }
 
-        if (typeInfo == typeInfo->BaseInfo())
+      auto propTypeInfo = mflect::type_info::find_type_info(p.type_name());
+      MFLECT_ASSERT(propTypeInfo != nullptr);
+
+      if (p.Integral())
+      {
+        if (p.IsPointer())
         {
-            break;
-        }
-
-        typeInfo = typeInfo->BaseInfo();
-    }
-    state.writer.EndObject();
-    state.depth--;
-}
-
-static void* ParseHelper(rapidjson::Document::ValueType* document, const std::string& nextName, void* next)
-{
-    bool isObject = document->IsObject();
-    TypeInfo *typeInfo = TypeInfo::GetTypeInfo(nextName);
-    //void *next = typeInfo->New();
-    for (rapidjson::Document::ValueType::MemberIterator i = document->MemberBegin(); i != document->MemberEnd(); ++i)
-    {
-        std::string propertyName = i->name.GetString();
-
-        if (propertyName.length() > 0 && propertyName[0] == '@')
-        {
-            if (propertyName == string("@type"))
-            {
-                D2D_ASSERT(nextName == i->value.GetString());
-            }
-            continue;
-        }
-
-        PropertyInfo *prop = typeInfo->FindProperty(propertyName);
-
-        if (prop == NULL)
-        {
-            D2D_RUNTIME_ERROR("Property: " + propertyName + " not found for type: " + typeInfo->Name());
-        }
-
-        if (i->value.IsObject())
-        {
-            string typeName = prop->TypeName();
-            if (TypeInfo::GetTypeInfo(typeName)->HasDerived())
-            {
-                for (rapidjson::Document::ValueType::MemberIterator j = i->value.MemberBegin(); j != i->value.MemberEnd(); ++j)
-                {
-                    if (j->name.GetString() == string("@type"))
-                    {
-                        typeName = j->value.GetString();
-                    }
-                }
-            }
-
-            void* value = TypeInfo::GetTypeInfo(typeName)->New();
-            ParseHelper(&(i->value), typeName, value);
-            prop->SetValue(next, value);
-            if (!prop->IsPointer())
-            {
-                delete value;
-            }
-        }
-        else if (i->value.IsArray())
-        {
-            TypeInfo* elementInfo = TypeInfo::GetTypeInfo(prop->TypeName());
-            if (elementInfo->IsIntegral())
-            {
-                for (int j = 0; j < i->value.Size(); j++)
-                {
-                    TypeInfo *tempTypeInfo = TypeInfo::GetTypeInfo(prop->TypeName());
-                    void *temp = tempTypeInfo->New();
-                    tempTypeInfo->SetString(temp, i->value[j].GetString());
-                    prop->PushValue(next, temp);
-                    delete temp;
-                }
-            }
-            else
-            {
-                for (int j = 0; j < i->value.Size(); j++)
-                {
-                    string typeName = prop->TypeName();
-                    if (TypeInfo::GetTypeInfo(typeName)->HasDerived())
-                    {
-                        for (rapidjson::Document::ValueType::MemberIterator k = i->value[j].MemberBegin(); k != i->value[j].MemberEnd(); ++k)
-                        {
-                            if (k->name.GetString() == string("@type"))
-                            {
-                                typeName = k->value.GetString();
-                            }
-                        }
-                    }
-                    void* value = TypeInfo::GetTypeInfo(typeName)->New();
-                    ParseHelper(&(i->value[j]), typeName, value);
-                    prop->PushValue(next, value);
-                    if (!prop->IsPointer())
-                    {
-                        delete value;
-                    }
-                }
-            }
+          void* value = NULL;
+          p.GetValue(next, value);
+          std::string stringValue = propTypeInfo->to_string(value);
+          state.writer.String(p.name());
+          state.writer.String(stringValue.c_str());
         }
         else
         {
-            TypeInfo *tempTypeInfo = TypeInfo::GetTypeInfo(prop->TypeName());
-            void *temp = tempTypeInfo->New();
-            tempTypeInfo->SetString(temp, i->value.GetString());
-            prop->SetValue(next, temp);
-            delete temp;
+          void* value = propTypeInfo->make_new();
+          p.GetValue(next, value);
+          std::string stringValue = propTypeInfo->to_string(value);
+          state.writer.String(p.name());
+          state.writer.String(stringValue.c_str());
+          propTypeInfo->make_delete(value);
         }
-    }
-    return next;
-}
-
-unsigned ToJSON(const void* instance, const std::string& typeName, char*& buffer)
-{
-    D2D_ASSERT(buffer == NULL);
-    CStateInfo state;
-
-#ifdef TARGET_EDITOR
-//            timerInit();
-#endif
-    Helper(state, instance, typeName);
-#ifdef TARGET_EDITOR
-//            qDebug() << "ToJSON took: " << timerGet() << "ms" << " type name: " << typeName.c_str();
-#endif
-
-    unsigned bufferSize = state.stringBuffer.Size();
-    buffer = new char [bufferSize];
-    memcpy(buffer, state.stringBuffer.GetString(), bufferSize);
-    return bufferSize;
-}
-
-void FromJSON(void* instance, const std::string& typeName, char* buffer)
-{
-    rapidjson::Document document;
-//            document.Parse<kParseDefaultFlags>(buffer);
-    document.ParseInsitu<kParseInsituFlag>(buffer);
-#ifdef TARGET_EDITOR
-//            timerInit();
-#endif
-    ParseHelper(&document, typeName, instance);
-#ifdef TARGET_EDITOR
-//            qDebug() << "FromJSON took: " << timerGet() << "ms" << " type name: " << typeName.c_str();
-#endif
-}
-
-std::string ExtractTopLevelTypeName(char* buffer)
-{
-    std::string result;
-    rapidjson::Document document;
-    document.Parse<kParseDefaultFlags>(buffer);
-    D2D_ASSERT(document.IsObject());
-
-    for (rapidjson::Document::ValueType::MemberIterator i = document.MemberBegin(); i != document.MemberEnd(); ++i)
-    {
-        std::string propertyName = i->name.GetString();
-
-        if (propertyName.length() > 0 && propertyName[0] == '@')
+      }
+      else if (p.IsArray())
+      {
+        if (p.GetArraySize(next) == 0)
         {
-            if (propertyName == string("@type"))
-            {
-                result = i->value.GetString();
-            }
+          continue;
         }
+
+        state.writer.String(p.name());
+        state.writer.StartArray();
+
+        if(propTypeInfo->is_integral())
+        {
+          for (unsigned j = 0; j < p.GetArraySize(next); j++)
+          {
+            // TODO: missing array of pointers to integrals like std::vector<int*>
+            void* value = propTypeInfo->make_new();
+            p.GetValue(next, value, j);
+            state.writer.String(propTypeInfo->to_string(value).c_str());
+            propTypeInfo->make_delete(value);
+          }
+        }
+        else
+        {
+          for (unsigned j = 0; j < p.GetArraySize(next); j++)
+          {
+            if (p.IsPointer())
+            {
+              void* value = NULL;
+              p.GetValue(next, value, j);
+              Helper(state, value, propTypeInfo->name());
+            }
+            else
+            {
+              void* value = propTypeInfo->make_new();
+              p.GetValue(next, value, j);
+              Helper(state, value, propTypeInfo->name());
+              propTypeInfo->make_delete(value);
+            }
+          }
+        }
+        state.writer.EndArray();
+      }
+      else
+      {
+        state.writer.String(p.name());
+        bool alreadySerialized = false;
+        bool nullPtr = false;
+        if (p.IsPointer())
+        {
+          void* value = NULL;
+          p.GetValue(next, value);
+
+          if (value == 0)
+          {
+            nullPtr = true;
+          }
+
+          if (nullPtr)
+          {
+            state.writer.String("0");
+          }
+          else
+          {
+            alreadySerialized = state.addressTable.count(value) == 1;
+            if (alreadySerialized)
+            {
+              state.writer.String(("@ptr" + convert<int>::
+                                   to_string(state.addressTable[value])).c_str());
+
+            }
+            else
+            {
+              state.ptrCount++;
+              state.addressTable[value] = state.ptrCount;
+              state.writer.StartObject();
+              state.writer.String("@ptr");
+              state.writer.String(convert<int>::to_string(state.ptrCount).c_str());
+              state.writer.String("@value");
+            }
+          }
+        }
+
+        if (!alreadySerialized && !nullPtr)
+        {
+          // TODO: seems fishy
+          if (p.IsPointer())
+          {
+            void *value = NULL;
+            p.GetValue(next, value);
+            Helper(state, value, p.type_name());
+            state.writer.EndObject();
+          }
+          else
+          {
+            void *value = propTypeInfo->make_new();
+            p.GetValue(next, value);
+            Helper(state, value, p.type_name());
+            propTypeInfo->make_delete(value);
+          }
+        }
+      }
     }
-    return result;
+
+    if (typeInfo == typeInfo->base())
+    {
+      break;
+    }
+
+    typeInfo = typeInfo->base();
+  }
+  state.writer.EndObject();
+  state.depth--;
 }
 
-}    // namespace Serialization
+static void* ParseHelper(rapidjson::Document::ValueType* document,
+                         const std::string& nextName, void* next)
+{
+  bool isObject = document->IsObject();
+  mflect::type_info* typeInfo = mflect::type_info::find_type_info(nextName);
+  //void *next = typeInfo->New();
 
-}    // namespace Deku2D
+  for (rapidjson::Document::ValueType::MemberIterator i
+         = document->MemberBegin();
+       i != document->MemberEnd();
+       ++i)
+  {
+    std::string propertyName = i->name.GetString();
+
+    if (propertyName.length() > 0 && propertyName[0] == '@')
+    {
+      if (propertyName == std::string("@type"))
+      {
+        MFLECT_ASSERT(nextName == i->value.GetString());
+      }
+      continue;
+    }
+
+    auto* prop = typeInfo->find_property(propertyName);
+
+    if (prop == NULL)
+    {
+      MFLECT_RUNTIME_ERROR("property: " + propertyName + " not found for type: " + typeInfo->name());
+    }
+
+    if (i->value.IsObject())
+    {
+      std::string propTypeName = prop->type_name();
+      auto propTypeInfo = mflect::type_info::find_type_info(propTypeName);
+      if (propTypeInfo->has_derived())
+      {
+        for (rapidjson::Document::ValueType::MemberIterator j
+               = i->value.MemberBegin();
+             j != i->value.MemberEnd();
+             ++j)
+        {
+          if (j->name.GetString() == std::string("@type"))
+          {
+            propTypeName = j->value.GetString();
+            propTypeInfo = mflect::type_info::find_type_info(propTypeName);
+          }
+        }
+      }
+
+      void* value = propTypeInfo->make_new();
+      ParseHelper(&(i->value), propTypeName, value);
+      prop->SetValue(next, value);
+      if (!prop->IsPointer())
+      {
+        propTypeInfo->make_delete(value);
+      }
+    }
+    else if (i->value.IsArray())
+    {
+      auto elementInfo = mflect::type_info::find_type_info(prop->type_name());
+      if (elementInfo->is_integral())
+      {
+        for (unsigned j = 0; j < i->value.Size(); j++)
+        {
+          auto *tempTypeInfo = mflect::type_info::find_type_info(prop->type_name());
+          void *temp = tempTypeInfo->make_new();
+          tempTypeInfo->from_string(temp, i->value[j].GetString());
+          prop->PushValue(next, temp);
+          tempTypeInfo->make_delete(temp);
+        }
+      }
+      else
+      {
+        for (unsigned j = 0; j < i->value.Size(); j++)
+        {
+          std::string typeName = prop->type_name();
+          if (mflect::type_info::find_type_info(typeName)->has_derived())
+          {
+            for (rapidjson::Document::ValueType::MemberIterator k = i->value[j].MemberBegin(); k != i->value[j].MemberEnd(); ++k)
+            {
+              if (k->name.GetString() == std::string("@type"))
+              {
+                typeName = k->value.GetString();
+              }
+            }
+          }
+          void* value = mflect::type_info::find_type_info(typeName)->make_new();
+          ParseHelper(&(i->value[j]), typeName, value);
+          prop->PushValue(next, value);
+          if (!prop->IsPointer())
+          {
+            mflect::type_info::find_type_info(typeName)->make_delete(value);
+          }
+        }
+      }
+    }
+    else
+    {
+      auto tempTypeInfo = mflect::type_info::find_type_info(prop->type_name());
+      void *temp = tempTypeInfo->make_new();
+      tempTypeInfo->from_string(temp, i->value.GetString());
+      prop->SetValue(next, temp);
+      tempTypeInfo->make_delete(temp);
+    }
+  }
+  return next;
+}
+
+unsigned to_json(const void* instance, const std::string& typeName, char*& buffer)
+{
+  MFLECT_ASSERT(buffer == nullptr);
+  CStateInfo state;
+  Helper(state, instance, typeName);
+  unsigned bufferSize = state.stringBuffer.Size();
+  buffer = new char [bufferSize + 1];
+  memcpy(buffer, state.stringBuffer.GetString(), bufferSize);
+  buffer[bufferSize] = 0;
+  return bufferSize;
+}
+
+void from_json(void* instance, const std::string& typeName, char* buffer)
+{
+  rapidjson::Document document;
+  //            document.Parse<kParseDefaultFlags>(buffer);
+  document.ParseInsitu<kParseInsituFlag>(buffer);
+
+  ParseHelper(&document, typeName, instance);
+
+}
+
+std::string extract_type_name(char* buffer)
+{
+  std::string result;
+  rapidjson::Document document;
+  document.Parse<kParseDefaultFlags>(buffer);
+  MFLECT_ASSERT(document.IsObject());
+
+  for (rapidjson::Document::ValueType::MemberIterator i = document.MemberBegin(); i != document.MemberEnd(); ++i)
+  {
+    std::string propertyName = i->name.GetString();
+
+    if (propertyName.length() > 0 && propertyName[0] == '@')
+    {
+      if (propertyName == std::string("@type"))
+      {
+        result = i->value.GetString();
+      }
+    }
+  }
+  return result;
+}
+
+} // namespace persistence
