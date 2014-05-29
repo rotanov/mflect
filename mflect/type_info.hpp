@@ -36,12 +36,14 @@ class type_info
 {
 public:
   type_info()
-    : has_derived_(false)
+    : hasDerived_(false)
   {
   }
 
+  typedef std::unordered_map<std::string, type_info*> db_type;
+
   /**
-   * @brief name returns string representation of this type.
+   * @brief name returns string representation of this type's name.
    */
   virtual const char* name() const = 0;
 
@@ -50,7 +52,8 @@ public:
    * @return pointer to new instance casted to void*
    *
    * If this type can't be instantiated (e.g. it's abstract) MFLECT_RUNTIME_ERROR
-   * will be called. It may be predefined by user. By default it's std::runtime_error.
+   * will be called. It may be predefined by user. By default it's exception
+   * std::runtime_error.
    */
   virtual void* make_new() const = 0;
 
@@ -71,7 +74,7 @@ public:
    * @brief Get a pointer to type_info instance for base class of this one.
    * @return pointer to type_info if this type has base class, nullptr otherwise.
    */
-  virtual type_info* base_info() const = 0;
+  inline type_info* base() const;
 
   /**
    * @brief Get string representation of given type instance.
@@ -104,20 +107,20 @@ public:
    * @param name
    * @return
    */
-  inline property_info *FindProperty(const std::string &name) const;
+  inline property_info *find_property(const std::string &name) const;
 
   /**
    * @brief GetRunTimeTypeInfo
    * @return
    */
-  inline virtual type_info* GetRunTimeTypeInfo(const void*) const;
+  inline virtual type_info* type_info_run_time(const void*instance) const;
 
   /**
-   * @brief GetTypeInfo
+   * @brief find_type_info
    * @param typeName
    * @return
    */
-  inline static type_info* GetTypeInfo(const std::string &typeName);
+  inline static type_info* find_type_info(const std::string &typeName);
 
   /**
    * @brief Initialize
@@ -162,7 +165,7 @@ public:
    * @brief type_info_register
    * @return
    */
-  inline static std::unordered_map<std::string, type_info*>& type_info_register();
+  inline static const db_type& db();
 
 protected:
   bool has_derived_;
@@ -185,11 +188,11 @@ T* type_info::cast(void* instance, const char* typeName)
 //==============================================================================
 bool type_info::has_derived() const
 {
-  return has_derived_;
+  return hasDerived_;
 }
 
 //==============================================================================
-property_info* type_info::FindProperty(const std::string& name) const
+property_info* type_info::find_property(const std::string& name) const
 {
   const type_info* typeInfo = this;
   property_info* propertyInfo = nullptr;
@@ -202,33 +205,30 @@ property_info* type_info::FindProperty(const std::string& name) const
       propertyInfo = typeInfo->property(name);
     }
 
-    if (typeInfo == typeInfo->base_info())
+    if (typeInfo == typeInfo->base())
     {
       break;
     }
 
-    typeInfo = typeInfo->base_info();
+    typeInfo = typeInfo->base();
   }
 
   return propertyInfo;
 }
 
 //==============================================================================
-type_info* type_info::GetRunTimeTypeInfo(const void*) const
+type_info* type_info::type_info_run_time(const void* /*instance*/) const
 {
-  MFLECT_RUNTIME_ERROR("GetRunTimeTypeInfo Not implemented for: " + std::string(name()));
+  MFLECT_RUNTIME_ERROR("type_info_run_time not implemented for type: " + std::string(name()));
 }
 
 //==============================================================================
-type_info* type_info::GetTypeInfo(const std::string& typeName)
+type_info* type_info::find_type_info(const std::string& typeName)
 {
-  auto i = type_info_register().find(typeName);
-  if (i == type_info_register().end())
+  auto i = db().find(typeName);
+  if (i == db().end())
   {
-#if defined(_DEBUG) || defined(DEBUG)
-      MFLECT_RUNTIME_ERROR("TypeInfo record for type: \"" + typeName + "\" doesn't exist.");
-#endif // debug
-
+      MFLECT_WARNING("type_info record for type: \"" + typeName + "\" doesn't exist");
       return nullptr;
   }
 
@@ -238,7 +238,7 @@ type_info* type_info::GetTypeInfo(const std::string& typeName)
 //==============================================================================
 void type_info::initialize()
 {
-  for (auto i : type_info_register())
+  for (auto i : db())
   {
     if (i.second->base_info() != nullptr)
     {
@@ -259,12 +259,12 @@ bool type_info::is_kind_of(const type_info* typeInfo) const
       return true;
     }
 
-    if (tempTypeInfo == tempTypeInfo->base_info())
+    if (tempTypeInfo == tempTypeInfo->base())
     {
       break;
     }
 
-    tempTypeInfo = tempTypeInfo->base_info();
+    tempTypeInfo = tempTypeInfo->base();
   }
   return false;
 }
@@ -281,9 +281,9 @@ unsigned type_info::GetInheritanceDepth() const
   const type_info* typeInfo = this;
 
   while (typeInfo != nullptr
-         && typeInfo != typeInfo->base_info())
+         && typeInfo != typeInfo->base())
   {
-    typeInfo = typeInfo->base_info();
+    typeInfo = typeInfo->base();
     r++;
   }
 
@@ -291,19 +291,24 @@ unsigned type_info::GetInheritanceDepth() const
 }
 
 //==============================================================================
-std::unordered_map<std::string, type_info*>& type_info::type_info_register()
+const type_info::db_type& type_info::db()
 {
-  static std::unordered_map<std::string, type_info*> type_info_register_;
-  return type_info_register_;
+  return db_();
 }
 
 //==============================================================================
+//==============================================================================
+type_info::db_type& type_info::db_()
+{
+  static type_info::db_type db;
+  return db;
+}
 template <typename T, typename F>
 inline T* cast(F* from, const char* typeName)
 {
   if (from != nullptr)
   {
-    return from->GetTypeInfo()->cast<T>(from, typeName);
+    return from->type_info_run_time()->cast<T>(from, typeName);
   }
   else
   {

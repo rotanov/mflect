@@ -103,78 +103,80 @@ struct identity
 };
 
 /**
-* VariantConvert - contains implementations of functions which convert strings to arbitrary plain type, supported by stringstream.
-*/
-
-namespace VariantConvert
+ * convert_impl - contains function implementations converting between string
+ * and arbitrary plain type, supported by stringstream.
+ */
+namespace convert_impl
 {
-    template<typename T>
-    inline T from_string_impl(const std::string &s, identity<T>)
+  template<typename T>
+  inline T from_string_impl(const std::string& s, identity<T>)
+  {
+    T result;
+    std::stringstream ss;
+    ss >> std::noskipws;
+    ss.str(s);
+    ss >> result;
+    return result;
+  }
+
+  inline bool from_string_impl(const std::string& s, identity<bool>)
+  {
+    if (s == "false" || s.empty())
     {
-        T result;
-        std::stringstream ss;
-        ss >> std::noskipws;
-        ss.str(s);
-        ss >> result;
-        return result;
+      return false;
     }
 
-    inline bool from_string_impl(const std::string &s, identity<bool>)
+    long double result;
+    std::stringstream ss;
+    ss.str(s);
+    ss >> result;
+
+    if (ss.fail())
     {
-        // ios::boolalpha - have you looked for it, while trying to reinvent the wheel?
-        // it doesn't suit our needs.. i don't remember why, though..
-        if (s == "false" || s.empty())
-            return false;
-
-        long double result;
-        std::stringstream ss;
-        ss.str(s);
-        ss >> result;
-
-        if (ss.fail())
-            return true;
-
-        return ((int) result != 0);
+      return true;
     }
 
-    inline std::string from_string_impl(const std::string &s, identity<std::string>)
-    {
-        return s;
-    }
+    return (static_cast<int>(result) != 0);
+  }
 
-    template <typename T>
-    inline std::string to_string_impl(const T& t)
-    {
-            std::ostringstream s;
-            s << t;
-            return s.str();
-    }
+  inline std::string from_string_impl(const std::string& s, identity<std::string>)
+  {
+    return s;
+  }
 
-    template <>
-    inline std::string to_string_impl(const bool& t)
-    {
-        return t ? "true" : "false";
-    }
+  template <typename T>
+  inline std::string to_string_impl(const T& t)
+  {
+    std::ostringstream s;
+    s << t;
+    return s.str();
+  }
 
-}    //    namespace VariantConvert
+  template <>
+  inline std::string to_string_impl(const bool& t)
+  {
+    return t ? "true" : "false";
+  }
+
+} // namespace convert_impl
 
 template<typename T>
 T from_string(const std::string &s)
 {
-    return VariantConvert::from_string_impl(s, identity<T>());
+  return convert_impl::from_string_impl(s, identity<T>());
 }
 
 template<typename T>
 std::string to_string(const T& t)
 {
-    return VariantConvert::to_string_impl(t);
+  return convert_impl::to_string_impl(t);
 }
 //==============================================================================
 template <typename From, typename To>
 class is_convertible
 {
 public:
-    enum { value = 0 };
+  enum { value = 0 };
 };
 
 #define MFLECT_DECLARE_CONVERTIBLE(FROM, TO) \
@@ -211,37 +213,35 @@ MFLECT_DECLARE_CONVERTIBLE(double, std::string)
 
 // Conversion from Type to Type for the case, when exception should be
 // thrown at runtime when there is no implementation for a conversion.
-template<typename T, int A = mflect::is_integral<T>::result>
-class Convert
+template<typename T, int Implemented = mflect::is_integral<T>::value>
+class convert
 {
 public:
-    static T FromString(const std::string &s)
-    {
-        return VariantConvert::from_string_impl(s, identity<T>());
-    }
+  static T from_string(const std::string& s)
+  {
+    return convert_impl::from_string_impl(s, identity<T>());
+  }
 
-    static std::string ToString(const T &value)
-    {
-        return VariantConvert::to_string_impl(value);
-    }
+  static std::string to_string(const T& value)
+  {
+    return convert_impl::to_string_impl(value);
+  }
 
 };
 
 template<typename T>
-class Convert<T, 0>
+class convert<T, 0>
 {
 public:
-    static T FromString(const std::string &s)
-    {
-        // TODO substitute typename if possible
-        MFLECT_RUNTIME_ERROR("Conversion from string to the type %s is not implemented.");
-    }
+  static T from_string(const std::string& s)
+  {
+    MFLECT_RUNTIME_ERROR("Conversion from string to the type %s is not implemented.");
+  }
 
-    static std::string ToString(const T &value)
-    {
-        // TODO substitute typename if possible
-        MFLECT_RUNTIME_ERROR("Conversion to string from type %s is not implemented.");
-    }
+  static std::string to_string(const T& value)
+  {
+    MFLECT_RUNTIME_ERROR("Conversion to string from type %s is not implemented.");
+  }
 
 };
 
@@ -263,7 +263,7 @@ class TypeInfoStringToTypeHelper<Type, 1>
 public:
     static void StringToType(const std::string& s, Type* instance)
     {
-        *instance = Convert<Type>::FromString(s);
+        *instance = convert<Type>::from_string(s);
     }
 
 };
@@ -285,7 +285,7 @@ class TypeInfoTypeToStringHelper<Type, 1>
 public:
     static std::string TypeToString(Type* instance)
     {
-        return Convert<Type>::ToString(*instance);
+        return convert<Type>::to_string(*instance);
     }
 
 };

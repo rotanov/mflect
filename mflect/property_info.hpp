@@ -24,6 +24,8 @@
 
 #include <string>
 
+#include "defines.hpp"
+
 namespace mflect
 {
 
@@ -49,55 +51,56 @@ public:
 
 } // namespace mflect
 
-////////////////////////////////////////////////////////////////////////////////
-#define MFLECT_BEGIN_DECLARE_PROPERTY_(OWNER, NAME)\
-    class PropertyInfo##OWNER##NAME : public PropertyInfo\
-    {\
-    public:\
+//==============================================================================
+#define MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)               \
+  class property_info_##OWNER##NAME : public mflect::property_info             \
+  {                                                                            \
+  public:                                                                      \
 
-////////////////////////////////////////////////////////////////////////////////
-#define MFLECT_DECLARE_PROPERTY_BASE_(OWNER, TYPE, NAME)\
-        typedef TYPE ValueType; \
-\
-        PropertyInfo##OWNER##NAME()\
-        {\
-            TypeInfo::GetTypeInfo(#OWNER)->Properties()[#NAME] = GetInstance();\
-        }\
-\
-        virtual const char* name() const\
-        {\
-            return #NAME;\
-        }\
-\
-        virtual const char* type_name() const\
-        {\
-            return #TYPE;\
-        }\
-\
-        virtual const char* owner_type_name() const\
-        {\
-            return #OWNER;\
-        }\
-\
-        static PropertyInfo##OWNER##NAME* GetInstance();\
+//==============================================================================
+#define MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME)          \
+    typedef TYPE value_type;                                                   \
+    typedef OWNER owner_type;                                                  \
+                                                                               \
+    property_info_##OWNER##NAME()                                              \
+    {                                                                          \
+      type_info_##OWNER::instance()->properties()[#NAME] = this;               \
+    }                                                                          \
+                                                                               \
+    virtual const char* name() const                                           \
+    {                                                                          \
+      return #NAME;                                                            \
+    }                                                                          \
+                                                                               \
+    virtual const char* type_name() const                                      \
+    {                                                                          \
+      return #TYPE;                                                            \
+    }                                                                          \
+                                                                               \
+    virtual const char* owner_type_name() const                                \
+    {                                                                          \
+      return #OWNER;                                                           \
+    }                                                                          \
+                                                                               \
+    static property_info_##OWNER##NAME* instance()                             \
+    {                                                                          \
+      static property_info_##OWNER##NAME instance_;                            \
+      return &instance_;                                                       \
+    }                                                                          \
 
-////////////////////////////////////////////////////////////////////////////////
-#define MFLECT_END_DECLARE_PROPERTY_(OWNER, NAME)\
-        static PropertyInfo##OWNER##NAME instance_;\
-    };\
-\
-    PropertyInfo##OWNER##NAME PropertyInfo##OWNER##NAME::instance_;\
-\
-    PropertyInfo##OWNER##NAME* PropertyInfo##OWNER##NAME::GetInstance()\
-    {\
-        return &instance_;\
-    }\
+//==============================================================================
+#define MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)                 \
+  private:                                                                     \
+    static property_info_##OWNER##NAME* instance_ptr_;                         \
+  };                                                                           \
+                                                                               \
+  property_info_##OWNER##NAME* property_info_##OWNER##NAME::instance_ptr_      \
+    = property_info_##OWNER##NAME::instance();                                 \
 
-
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 #define MFLECT_DECLARE_PROPERTY_INFO_EX(OWNER, TYPE, NAME, SETTER, GETTER)\
-    MFLECT_BEGIN_DECLARE_PROPERTY_(OWNER, NAME)\
-    MFLECT_DECLARE_PROPERTY_BASE_(OWNER, TYPE, NAME)\
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)\
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME)\
 \
         virtual void SetValue(void* owner, const void *property) const\
         {\
@@ -113,7 +116,7 @@ public:
 \
         virtual bool Integral() const\
         {\
-            return Deku2D::IsIntegral<TYPE>::result;\
+            return mflect::is_integral<TYPE>::value;\
         }\
 \
         virtual bool IsPointer() const\
@@ -146,12 +149,12 @@ public:
             MFLECT_RUNTIME_ERROR("Not implemented.")\
         }\
 \
-    MFLECT_END_DECLARE_PROPERTY_(OWNER, NAME)\
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
 
 ////////////////////////////////////////////////////////////////////////////////
 #define MFLECT_DECLARE_ARRAY_PROPERTY_INFO_EX(OWNER, TYPE, NAME, PUSHER, GETTER, SIZEGETTER, CLEARER)\
-    MFLECT_BEGIN_DECLARE_PROPERTY_(OWNER, NAME)\
-    MFLECT_DECLARE_PROPERTY_BASE_(OWNER, TYPE, NAME)\
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)\
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME)\
 \
         virtual void SetValue(void*, const void *) const\
         {\
@@ -197,12 +200,12 @@ public:
         {\
             static_cast<OWNER*>(owner)->CLEARER();\
         }\
-    MFLECT_END_DECLARE_PROPERTY_(OWNER, NAME)\
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
 
 ////////////////////////////////////////////////////////////////////////////////
 #define MFLECT_DECLARE_PTR_ARRAY_PROPERTY_INFO_EX(OWNER, TYPE, NAME, PUSHER, GETTER, SIZEGETTER, CLEARER)\
-    MFLECT_BEGIN_DECLARE_PROPERTY_(OWNER, NAME)\
-    MFLECT_DECLARE_PROPERTY_BASE_(OWNER, TYPE, NAME)\
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)\
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME)\
 \
         virtual void SetValue(void*, const void*) const\
         {\
@@ -248,12 +251,12 @@ public:
         {\
             static_cast<OWNER*>(owner)->CLEARER();\
         }\
-    MFLECT_END_DECLARE_PROPERTY_(OWNER, NAME)\
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
 
 ////////////////////////////////////////////////////////////////////////////////
 #define MFLECT_DECLARE_PTR_PROPERTY_INFO_EX(OWNER, TYPE, NAME, SETTER, GETTER)\
-    MFLECT_BEGIN_DECLARE_PROPERTY_(OWNER, NAME)\
-    MFLECT_DECLARE_PROPERTY_BASE_(OWNER, TYPE, NAME)\
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)\
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME)\
 \
     virtual void SetValue(void* owner, const void *property) const\
     {\
@@ -269,7 +272,7 @@ public:
 \
     virtual bool Integral() const\
     {\
-        return Deku2D::IsIntegral<TYPE>::result;\
+        return mflect::Is_integral<TYPE>::value;\
     }\
 \
     virtual bool IsPointer() const\
@@ -301,7 +304,7 @@ public:
     {\
         MFLECT_RUNTIME_ERROR("Not implemented.")\
     }\
-    MFLECT_END_DECLARE_PROPERTY_(OWNER, NAME)\
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
 
 ////////////////////////////////////////////////////////////////////////////////
 #define MFLECT_DECLARE_PTR_PROPERTY_INFO(OWNER, TYPE, NAME)\

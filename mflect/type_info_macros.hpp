@@ -27,13 +27,13 @@
   mflect::cast<TO>(WHAT, #TO)                                                  \
 
 //==============================================================================
-#define MFLECT_TYPE_INFO_DECLARATION_BEGIN_(TYPE)                              \
+#define MFLECT_INTERNAL_TYPE_INFO_DECLARATION_BEGIN_(TYPE)                     \
   class type_info_##TYPE : public mflect::type_info                            \
   {                                                                            \
   public:                                                                      \
 
 //==============================================================================
-#define MFLECT_TYPE_INFO_DECLARATION_BASE_(TYPE)                               \
+#define MFLECT_INTERNAL_TYPE_INFO_DECLARATION_BASE_(TYPE)                      \
     type_info_##TYPE()                                                         \
     {                                                                          \
       auto& infos = type_info::type_info_register();                           \
@@ -85,8 +85,8 @@
     }                                                                          \
 
 //==============================================================================
-#define MFLECT_TYPE_INFO_DECLARATION_END_(TYPE)                                \
   static type_info_##TYPE instance_;                                           \
+#define MFLECT_INTERNAL_TYPE_INFO_DECLARATION_END_(TYPE)                       \
   static std::unordered_map<std::string, mflect::property_info*> properties_;  \
 };                                                                             \
                                                                                \
@@ -97,58 +97,52 @@ std::unordered_map<std::string, mflect::property_info*>                        \
 
 //==============================================================================
 #define MFLECT_TYPE_INFO_DECLARE(TYPE)                                         \
-  MFLECT_TYPE_INFO_DECLARATION_BEGIN_(TYPE)                                    \
-  MFLECT_TYPE_INFO_DECLARATION_BASE_(TYPE)                                     \
+  MFLECT_INTERNAL_TYPE_INFO_DECLARATION_BEGIN_(TYPE)                           \
+  MFLECT_INTERNAL_TYPE_INFO_DECLARATION_BASE_(TYPE)                            \
                                                                                \
-  virtual type_info* base_info() const                                         \
+  virtual type_info* type_info_run_time(const void* /*instance*/) const        \
   {                                                                            \
-    return nullptr;                                                            \
+      return type_info_##TYPE::instance();                                     \
   }                                                                            \
                                                                                \
-  virtual type_info* GetRunTimeTypeInfo(const void* /*instance*/) const        \
-  {                                                                            \
-      return &type_info_##TYPE::instance_;                                     \
-  }                                                                            \
-                                                                               \
-  MFLECT_TYPE_INFO_DECLARATION_END_(TYPE)                                      \
+  MFLECT_INTERNAL_TYPE_INFO_DECLARATION_END_(TYPE)                             \
 
 //==============================================================================
 #define MFLECT_TYPE_INFO_DECLARE_DERIVED(TYPE_DERIVED, TYPE_BASE)              \
-  MFLECT_TYPE_INFO_DECLARATION_BEGIN_(TYPE_DERIVED)                            \
-  MFLECT_TYPE_INFO_DECLARATION_BASE_(TYPE_DERIVED)                             \
+  MFLECT_INTERNAL_TYPE_INFO_DECLARATION_BEGIN_(TYPE_DERIVED)                   \
+  MFLECT_INTERNAL_TYPE_INFO_DECLARATION_BASE_(TYPE_DERIVED)                    \
                                                                                \
   virtual type_info* base_info() const                                         \
   {                                                                            \
     return type_info_register()[#TYPE_BASE];                                   \
   }                                                                            \
                                                                                \
-  virtual type_info* GetRunTimeTypeInfo(const void* instance) const            \
+  virtual type_info* type_info_run_time(const void* instance) const            \
   {                                                                            \
-    return static_cast<const TYPE_DERIVED*>(instance)->GetTypeInfo();          \
+    return static_cast<const TYPE_DERIVED*>(instance)->type_info_run_time();   \
   }                                                                            \
                                                                                \
-  MFLECT_TYPE_INFO_DECLARATION_END_(TYPE_DERIVED)                              \
+  MFLECT_INTERNAL_TYPE_INFO_DECLARATION_END_(TYPE_DERIVED)                     \
 
 //==============================================================================
-#define MFLECT_INJECT_TYPE_INFO(TYPE)                                          \
+#define MFLECT_INTERNAL_INJECT_TYPE_INFO_BASE_(TYPE)                           \
   public:                                                                      \
-    virtual mflect::type_info* GetTypeInfo() const                             \
+    virtual mflect::type_info* type_info_run_time() const                      \
     {                                                                          \
       return mflect::type_info::GetTypeInfo(#TYPE);                            \
     }                                                                          \
                                                                                \
   private:                                                                     \
+//==============================================================================
+#define MFLECT_INJECT_TYPE_INFO(TYPE)                                          \
+  MFLECT_INTERNAL_INJECT_TYPE_INFO_BASE_(TYPE)                                 \
 
 //==============================================================================
 #define MFLECT_INJECT_TYPE_INFO_DERIVED(TYPE_DERIVED, TYPE_BASE)               \
   public:                                                                      \
-    typedef TYPE_BASE Base;                                                    \
+    typedef TYPE_BASE base_type;                                               \
                                                                                \
-    virtual mflect::type_info* GetTypeInfo() const                             \
-    {                                                                          \
-      return mflect::type_info::GetTypeInfo(#TYPE_DERIVED);                    \
-    }                                                                          \
-    private:                                                                   \
+  MFLECT_INTERNAL_INJECT_TYPE_INFO_BASE_(TYPE_DERIVED)
 
 //==============================================================================
 #define MFLECT_INJECT_PROPERTY(TYPE, NAME)                                     \
