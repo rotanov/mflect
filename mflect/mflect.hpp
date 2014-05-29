@@ -28,3 +28,13 @@
 #include "property_info.hpp"
 #include "property_attributes.hpp"
 #include "type_info_macros.hpp"
+
+namespace mflect
+{
+
+inline static void initialize()
+{
+  type_info::initialize();
+}
+
+} // namespace mflect
