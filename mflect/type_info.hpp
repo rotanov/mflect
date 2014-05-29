@@ -40,7 +40,14 @@ public:
   type_info()
     : hasDerived_(false)
     , baseTypeInfo_(nullptr)
+    , typeId_(-1)
   {
+  }
+
+  virtual ~type_info()
+  {
+    delete [] cast_table_();
+    cast_table_() = nullptr;
   }
 
   typedef std::unordered_map<std::string, type_info*> db_type;
@@ -186,7 +193,16 @@ protected:
   inline void register_type_info_(const std::string& typeName, type_info* typeInfo);
 
   inline static db_type& db_();
+
+  inline static int*& cast_table_();
+
+  inline static int& type_count_();
+
+  int typeId_;
+  bool hasDerived_;
   type_info* baseTypeInfo_;
+
+private:
 
 };
 
@@ -275,9 +291,29 @@ void type_info::initialize()
 {
   for (auto i : db())
   {
-    if (i.second->base_info() != nullptr)
+    auto typeInfo = i.second;
+    std::string baseName = typeInfo->base_name();
+    if (!baseName.empty())
     {
-      i.second->base_info()->has_derived_ = true;
+      if (db().find(baseName) == db().end())
+      {
+        MFLECT_RUNTIME_ERROR("no type_info record for base type: " + baseName);
+      }
+      typeInfo->baseTypeInfo_ = db().at(baseName);
+      i.second->base()->hasDerived_ = true;
+    }
+  }
+
+  auto& castTable = cast_table_();
+  int typeCount = type_count_();
+  castTable = new int [typeCount * typeCount];
+
+  for (auto i : db())
+  {
+    for (auto j : db())
+    {
+      castTable[i.second->typeId_ * type_count_() + j.second->typeId_] =
+        i.second->is_kind_of(j.second);
     }
   }
 }
@@ -336,6 +372,8 @@ void type_info::register_type_info_(const std::string& typeName, type_info* type
     return;
   }
   db[typeName] = typeInfo;
+  typeId_ = type_count_();
+  type_count_()++;
 }
 
 //==============================================================================
@@ -344,7 +382,19 @@ type_info::db_type& type_info::db_()
   static type_info::db_type db;
   return db;
 }
+
+//==============================================================================
+int*& type_info::cast_table_()
 {
+  static int* cast_table_ = nullptr;
+  return cast_table_;
+}
+
+//==============================================================================
+int& type_info::type_count_()
+{
+  static int type_count_ = 0;
+  return type_count_;
 }
 
 //==============================================================================
