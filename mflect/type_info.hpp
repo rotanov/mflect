@@ -178,7 +178,13 @@ public:
   inline static const db_type& db();
 
 protected:
-  bool has_derived_;
+  /**
+   * @brief register_type_info_
+   * @param typeName
+   * @param typeInfo
+   */
+  inline void register_type_info_(const std::string& typeName, type_info* typeInfo);
+
   inline static db_type& db_();
   type_info* baseTypeInfo_;
 
@@ -321,6 +327,17 @@ const type_info::db_type& type_info::db()
 }
 
 //==============================================================================
+void type_info::register_type_info_(const std::string& typeName, type_info* typeInfo)
+{
+  auto& db = type_info::db_();
+  if (db.find(typeName) != db.end())
+  {
+    MFLECT_RUNTIME_ERROR("type_info record for type " + typeName + " has already been registered");
+    return;
+  }
+  db[typeName] = typeInfo;
+}
+
 //==============================================================================
 type_info::db_type& type_info::db_()
 {

@@ -36,14 +36,7 @@
 #define MFLECT_INTERNAL_TYPE_INFO_DECLARATION_BASE_(TYPE)                      \
     type_info_##TYPE()                                                         \
     {                                                                          \
-      auto& infos = type_info::type_info_register();                           \
-      if (infos.find(#TYPE) != infos.end())                                    \
-      {                                                                        \
-        MFLECT_RUNTIME_ERROR("type info for type "                             \
-          + std::string(#TYPE)                                                 \
-          + " has already been defined");                                      \
-      }                                                                        \
-      type_info_register()[#TYPE] = &instance_;                                \
+      register_type_info_(#TYPE, this);                                        \
     }                                                                          \
                                                                                \
     virtual void* make_new() const                                             \
