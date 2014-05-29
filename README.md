@@ -1,5 +1,5 @@
 # mflect
 
-mflect is header-only C++ library providing reflection capabilities.
+mflect is a header-only C++ library providing reflection capabilities.
 
 TBD
