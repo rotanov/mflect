@@ -39,3 +39,10 @@
   throw std::runtime_error(MESSAGE); \
 
 #endif // MFLECT_RUNTIME_ERROR
+
+#ifndef MFLECT_WARNING
+#define MFLECT_WARNING(MESSAGE) \
+  std::cout << (MESSAGE) \
+
+#endif // MFLECT_WARNING
+
