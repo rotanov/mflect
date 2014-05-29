@@ -51,6 +51,11 @@
       return mflect::make<TYPE>::instance();                                   \
     }                                                                          \
                                                                                \
+    virtual void make_delete(void* instance) const                             \
+    {                                                                          \
+      delete static_cast<TYPE*>(instance);                                     \
+    }                                                                          \
+                                                                               \
     virtual const char* name() const                                           \
     {                                                                          \
       return #TYPE;                                                            \

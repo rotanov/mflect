@@ -61,6 +61,12 @@ public:
   virtual void* make_new() const = 0;
 
   /**
+   * @brief make_delete
+   * @param instance
+   */
+  virtual void make_delete(void* instance) const = 0;
+
+  /**
    * @brief property
    * @param name
    * @return
