@@ -129,10 +129,20 @@ std::unordered_map<std::string, mflect::property_info*>                        \
   public:                                                                      \
     virtual mflect::type_info* type_info_run_time() const                      \
     {                                                                          \
-      return mflect::type_info::GetTypeInfo(#TYPE);                            \
+      static mflect::type_info* typeInfo_                                      \
+        = mflect::type_info::find_type_info(#TYPE);                            \
+      return typeInfo_;                                                        \
     }                                                                          \
                                                                                \
-  private:                                                                     \
+    inline static mflect::type_info* type_info_static()                        \
+    {                                                                          \
+      static mflect::type_info* typeInfo_                                      \
+        = mflect::type_info::find_type_info(#TYPE);                            \
+      return typeInfo_;                                                        \
+    }                                                                          \
+                                                                               \
+    private:                                                                   \
+
 //==============================================================================
 #define MFLECT_INJECT_TYPE_INFO(TYPE)                                          \
   MFLECT_INTERNAL_INJECT_TYPE_INFO_BASE_(TYPE)                                 \
