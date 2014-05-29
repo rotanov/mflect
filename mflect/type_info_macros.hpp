@@ -112,9 +112,9 @@ std::unordered_map<std::string, mflect::property_info*>                        \
   MFLECT_INTERNAL_TYPE_INFO_DECLARATION_BEGIN_(TYPE_DERIVED)                   \
   MFLECT_INTERNAL_TYPE_INFO_DECLARATION_BASE_(TYPE_DERIVED)                    \
                                                                                \
-  virtual type_info* base_info() const                                         \
+  virtual const char* base_name() const                                        \
   {                                                                            \
-    return type_info_register()[#TYPE_BASE];                                   \
+    return #TYPE_BASE;                                                         \
   }                                                                            \
                                                                                \
   virtual type_info* type_info_run_time(const void* instance) const            \

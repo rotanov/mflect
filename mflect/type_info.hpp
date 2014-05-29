@@ -25,6 +25,8 @@
 #include <unordered_map>
 #include <string>
 
+#include "defines.hpp"
+
 namespace mflect
 {
 
@@ -37,6 +39,7 @@ class type_info
 public:
   type_info()
     : hasDerived_(false)
+    , baseTypeInfo_(nullptr)
   {
   }
 
@@ -75,6 +78,12 @@ public:
    * @return pointer to type_info if this type has base class, nullptr otherwise.
    */
   inline type_info* base() const;
+
+  /**
+   * @brief base_name
+   * @return
+   */
+  inline virtual const char* base_name() const;
 
   /**
    * @brief Get string representation of given type instance.
@@ -169,6 +178,8 @@ public:
 
 protected:
   bool has_derived_;
+  inline static db_type& db_();
+  type_info* baseTypeInfo_;
 
 };
 
@@ -183,6 +194,16 @@ T* type_info::cast(void* instance, const char* typeName)
     return static_cast<T*>(instance);
   }
   return nullptr;
+//==============================================================================
+type_info* type_info::base() const
+{
+  return baseTypeInfo_;
+}
+
+//==============================================================================
+const char* type_info::base_name() const
+{
+  return "";
 }
 
 //==============================================================================
