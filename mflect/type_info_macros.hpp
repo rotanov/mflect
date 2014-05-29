@@ -81,14 +81,22 @@
     {                                                                          \
       return properties_;                                                      \
     }                                                                          \
+                                                                               \
+    static type_info_##TYPE* instance()                                        \
+    {                                                                          \
+      static type_info_##TYPE instance_;                                       \
+      return &instance_;                                                       \
+    }                                                                          \
 
 //==============================================================================
-  static type_info_##TYPE instance_;                                           \
 #define MFLECT_INTERNAL_TYPE_INFO_DECLARATION_END_(TYPE)                       \
+private:                                                                       \
+  static type_info_##TYPE* instance_ptr_;                                      \
   static std::unordered_map<std::string, mflect::property_info*> properties_;  \
 };                                                                             \
                                                                                \
-type_info_##TYPE type_info_##TYPE::instance_;                                  \
+type_info_##TYPE* type_info_##TYPE::instance_ptr_                              \
+  =  type_info_##TYPE::instance();                                             \
 std::unordered_map<std::string, mflect::property_info*>                        \
   type_info_##TYPE::properties_;                                               \
                                                                                \
