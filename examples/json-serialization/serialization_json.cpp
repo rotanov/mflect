@@ -57,7 +57,7 @@ public:
   }
 };
 
-static void Helper(CStateInfo& state, const void* next, const std::string &nextName)
+static void make_json(CStateInfo& state, const void* next, const std::string &nextName)
 {
   state.depth++;
   state.writer.StartObject();
@@ -104,27 +104,7 @@ static void Helper(CStateInfo& state, const void* next, const std::string &nextN
       auto propTypeInfo = mflect::type_info::find_type_info(p.type_name());
       MFLECT_ASSERT(propTypeInfo != nullptr);
 
-      if (p.Integral())
-      {
-        if (p.IsPointer())
-        {
-          void* value = NULL;
-          p.GetValue(next, value);
-          std::string stringValue = propTypeInfo->to_string(value);
-          state.writer.String(p.name());
-          state.writer.String(stringValue.c_str());
-        }
-        else
-        {
-          void* value = propTypeInfo->make_new();
-          p.GetValue(next, value);
-          std::string stringValue = propTypeInfo->to_string(value);
-          state.writer.String(p.name());
-          state.writer.String(stringValue.c_str());
-          propTypeInfo->make_delete(value);
-        }
-      }
-      else if (p.IsArray())
+      if (p.IsArray())
       {
         if (p.GetArraySize(next) == 0)
         {
@@ -153,18 +133,38 @@ static void Helper(CStateInfo& state, const void* next, const std::string &nextN
             {
               void* value = NULL;
               p.GetValue(next, value, j);
-              Helper(state, value, propTypeInfo->name());
+              make_json(state, value, propTypeInfo->name());
             }
             else
             {
               void* value = propTypeInfo->make_new();
               p.GetValue(next, value, j);
-              Helper(state, value, propTypeInfo->name());
+              make_json(state, value, propTypeInfo->name());
               propTypeInfo->make_delete(value);
             }
           }
         }
         state.writer.EndArray();
+      }
+      else if (propTypeInfo->is_integral())
+      {
+        if (p.IsPointer())
+        {
+          void* value = NULL;
+          p.GetValue(next, value);
+          std::string stringValue = propTypeInfo->to_string(value);
+          state.writer.String(p.name());
+          state.writer.String(stringValue.c_str());
+        }
+        else
+        {
+          void* value = propTypeInfo->make_new();
+          p.GetValue(next, value);
+          std::string stringValue = propTypeInfo->to_string(value);
+          state.writer.String(p.name());
+          state.writer.String(stringValue.c_str());
+          propTypeInfo->make_delete(value);
+        }
       }
       else
       {
@@ -213,14 +213,14 @@ static void Helper(CStateInfo& state, const void* next, const std::string &nextN
           {
             void *value = NULL;
             p.GetValue(next, value);
-            Helper(state, value, p.type_name());
+            make_json(state, value, p.type_name());
             state.writer.EndObject();
           }
           else
           {
             void *value = propTypeInfo->make_new();
             p.GetValue(next, value);
-            Helper(state, value, p.type_name());
+            make_json(state, value, p.type_name());
             propTypeInfo->make_delete(value);
           }
         }
@@ -238,7 +238,7 @@ static void Helper(CStateInfo& state, const void* next, const std::string &nextN
   state.depth--;
 }
 
-static void* ParseHelper(rapidjson::Document::ValueType* document,
+static void* construct(rapidjson::Document::ValueType* document,
                          const std::string& nextName, void* next)
 {
   bool isObject = document->IsObject();
@@ -288,7 +288,7 @@ static void* ParseHelper(rapidjson::Document::ValueType* document,
       }
 
       void* value = propTypeInfo->make_new();
-      ParseHelper(&(i->value), propTypeName, value);
+      construct(&(i->value), propTypeName, value);
       prop->SetValue(next, value);
       if (!prop->IsPointer())
       {
@@ -325,7 +325,7 @@ static void* ParseHelper(rapidjson::Document::ValueType* document,
             }
           }
           void* value = mflect::type_info::find_type_info(typeName)->make_new();
-          ParseHelper(&(i->value[j]), typeName, value);
+          construct(&(i->value[j]), typeName, value);
           prop->PushValue(next, value);
           if (!prop->IsPointer())
           {
@@ -350,7 +350,7 @@ unsigned to_json(const void* instance, const std::string& typeName, char*& buffe
 {
   MFLECT_ASSERT(buffer == nullptr);
   CStateInfo state;
-  Helper(state, instance, typeName);
+  make_json(state, instance, typeName);
   unsigned bufferSize = state.stringBuffer.Size();
   buffer = new char [bufferSize + 1];
   memcpy(buffer, state.stringBuffer.GetString(), bufferSize);
@@ -361,11 +361,9 @@ unsigned to_json(const void* instance, const std::string& typeName, char*& buffe
 void from_json(void* instance, const std::string& typeName, char* buffer)
 {
   rapidjson::Document document;
-  //            document.Parse<kParseDefaultFlags>(buffer);
+//  document.Parse<kParseDefaultFlags>(buffer);
   document.ParseInsitu<kParseInsituFlag>(buffer);
-
-  ParseHelper(&document, typeName, instance);
-
+  construct(&document, typeName, instance);
 }
 
 std::string extract_type_name(char* buffer)

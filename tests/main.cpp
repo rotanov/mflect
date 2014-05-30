@@ -34,8 +34,6 @@ std::string mflect::type_info::GetTypeDescriptionString(const std::string& typeN
           r += "array, ";
       if (p.IsPointer())
           r += "pointer, ";
-      if (p.Integral())
-          r += "integral, ";
       r += eolStr;
   }
 

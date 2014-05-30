@@ -28,6 +28,7 @@
 #include "property_info.hpp"
 #include "property_attributes.hpp"
 #include "type_info_macros.hpp"
+#include "property_info_macros.hpp"
 
 namespace mflect
 {
