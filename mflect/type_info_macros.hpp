@@ -71,16 +71,6 @@
         TypeToString(static_cast<TYPE*>(instance));                            \
     }                                                                          \
                                                                                \
-    virtual mflect::property_info* property(const std::string& name) const     \
-    {                                                                          \
-      return properties_[name];                                                \
-    }                                                                          \
-                                                                               \
-    virtual std::unordered_map<std::string, mflect::property_info*>&           \
-      properties() const                                                       \
-    {                                                                          \
-      return properties_;                                                      \
-    }                                                                          \
                                                                                \
     static type_info_##TYPE* instance()                                        \
     {                                                                          \
@@ -92,13 +82,10 @@
 #define MFLECT_INTERNAL_TYPE_INFO_DECLARATION_END_(TYPE)                       \
 private:                                                                       \
   static type_info_##TYPE* instance_ptr_;                                      \
-  static std::unordered_map<std::string, mflect::property_info*> properties_;  \
 };                                                                             \
                                                                                \
 type_info_##TYPE* type_info_##TYPE::instance_ptr_                              \
   =  type_info_##TYPE::instance();                                             \
-std::unordered_map<std::string, mflect::property_info*>                        \
-  type_info_##TYPE::properties_;                                               \
                                                                                \
 
 //==============================================================================

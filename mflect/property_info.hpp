@@ -47,6 +47,12 @@ public:
 
   virtual unsigned GetArraySize(const void* owner) const = 0;
   virtual void Clear(void* owner) const = 0;
+
+protected:
+  type_info::property_db_type& type_info_properties_(type_info* typeInfo)
+  {
+    return typeInfo->properties_;
+  }
 };
 
 } // namespace mflect
@@ -64,7 +70,7 @@ public:
                                                                                \
     property_info_##OWNER##NAME()                                              \
     {                                                                          \
-      type_info_##OWNER::instance()->properties()[#NAME] = this;               \
+        type_info_properties_(type_info_##OWNER::instance())[#NAME] = this;    \
     }                                                                          \
                                                                                \
     virtual const char* name() const                                           \
@@ -151,7 +157,7 @@ public:
 \
     MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 #define MFLECT_DECLARE_ARRAY_PROPERTY_INFO_EX(OWNER, TYPE, NAME, PUSHER, GETTER, SIZEGETTER, CLEARER)\
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)\
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME)\
@@ -202,7 +208,7 @@ public:
         }\
     MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 #define MFLECT_DECLARE_PTR_ARRAY_PROPERTY_INFO_EX(OWNER, TYPE, NAME, PUSHER, GETTER, SIZEGETTER, CLEARER)\
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)\
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME)\
@@ -253,7 +259,7 @@ public:
         }\
     MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 #define MFLECT_DECLARE_PTR_PROPERTY_INFO_EX(OWNER, TYPE, NAME, SETTER, GETTER)\
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)\
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME)\
@@ -306,11 +312,11 @@ public:
     }\
     MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 #define MFLECT_DECLARE_PTR_PROPERTY_INFO(OWNER, TYPE, NAME)\
     MFLECT_DECLARE_PTR_PROPERTY_INFO_EX(OWNER, TYPE, NAME, Set##NAME, Get##NAME)\
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 #define MFLECT_DECLARE_PROPERTY_INFO(OWNER, TYPE, NAME)\
     MFLECT_DECLARE_PROPERTY_INFO_EX(OWNER, TYPE, NAME, Set##NAME, Get##NAME)\
 

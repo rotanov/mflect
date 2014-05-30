@@ -36,6 +36,8 @@ class property_info;
  */
 class type_info
 {
+  friend class mflect::property_info;
+
 public:
   type_info()
     : hasDerived_(false)
@@ -50,7 +52,8 @@ public:
     cast_table_() = nullptr;
   }
 
-  typedef std::unordered_map<std::string, type_info*> db_type;
+  typedef std::unordered_map<std::string, type_info*> type_info_db_type;
+  typedef std::unordered_map<std::string, property_info*> property_db_type;
 
   /**
    * @brief name returns string representation of this type's name.
@@ -78,13 +81,13 @@ public:
    * @param name
    * @return
    */
-  virtual property_info* property(const std::string& name) const = 0;
+  inline property_info* property(const std::string& name) const;
 
   /**
    * @brief properties
    * @return
    */
-  virtual std::unordered_map<std::string, property_info*>& properties() const = 0;
+  inline const property_db_type& properties() const;
 
   /**
    * @brief Get a pointer to type_info instance for base class of this one.
@@ -182,7 +185,7 @@ public:
    * @brief type_info_register
    * @return
    */
-  inline static const db_type& db();
+  inline static const type_info_db_type& db();
 
 protected:
   /**
@@ -192,7 +195,7 @@ protected:
    */
   inline void register_type_info_(const std::string& typeName, type_info* typeInfo);
 
-  inline static db_type& db_();
+  inline static type_info_db_type& db_();
 
   inline static int*& cast_table_();
 
@@ -201,6 +204,7 @@ protected:
   int typeId_;
   bool hasDerived_;
   type_info* baseTypeInfo_;
+  property_db_type properties_;
 
 private:
 
@@ -222,6 +226,26 @@ T* type_info::cast(void* instance, type_info* typeInfo)
   {
     return nullptr;
   }
+}
+
+//==============================================================================
+property_info* type_info::property(const std::string& name) const
+{
+  auto it = properties_.find(name);
+  if (it == properties_.end())
+  {
+    return nullptr;
+  }
+  else
+  {
+    return properties_.at(name);
+  }
+}
+
+//==============================================================================
+const type_info::property_db_type& type_info::properties() const
+{
+  return properties_;
 }
 
 //==============================================================================
@@ -357,7 +381,7 @@ unsigned type_info::GetInheritanceDepth() const
 }
 
 //==============================================================================
-const type_info::db_type& type_info::db()
+const type_info::type_info_db_type& type_info::db()
 {
   return db_();
 }
@@ -377,9 +401,9 @@ void type_info::register_type_info_(const std::string& typeName, type_info* type
 }
 
 //==============================================================================
-type_info::db_type& type_info::db_()
+type_info::type_info_db_type& type_info::db_()
 {
-  static type_info::db_type db;
+  static type_info::type_info_db_type db;
   return db;
 }
 
