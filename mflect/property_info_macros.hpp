@@ -113,7 +113,7 @@
   GETTER, SIZEGETTER, CLEARER)                                                 \
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)                   \
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME,              \
-      mflect::pflags::array)                                                   \
+      mflect::pflag::array)                                                    \
 \
         virtual void SetValue(void*, const void *) const\
         {\
@@ -151,7 +151,7 @@
   GETTER, SIZEGETTER, CLEARER)                                                 \
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)                   \
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME,              \
-      mflect::pflags::array | mflect::pflags::pointer)                         \
+      mflect::pflag::array | mflect::pflag::pointer)                           \
 \
         virtual void SetValue(void*, const void*) const\
         {\
@@ -188,7 +188,7 @@
 #define MFLECT_DECLARE_PTR_PROPERTY_INFO_EX(OWNER, TYPE, NAME, SETTER, GETTER) \
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)                   \
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME,              \
-      mflect::pflags::pointer)                                                 \
+      mflect::pflag::pointer)                                                  \
 \
     virtual void SetValue(void* owner, const void *property) const\
     {\
