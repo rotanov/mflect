@@ -35,10 +35,18 @@ enum class pflag : unsigned
   inplace = 0x01,
   array = 0x02,
   pointer = 0x04,
+  identity_mask = 0xffffffff,
 };
 
-inline unsigned operator &(const int lhs, const pflag rhs)
+inline unsigned operator &(const unsigned lhs, const pflag rhs)
   { return lhs & static_cast<unsigned>(rhs); }
+inline unsigned operator &(const pflag lhs, const pflag rhs)
+  { return static_cast<unsigned>(lhs) & rhs; }
+inline unsigned operator |(const unsigned lhs, const pflag rhs)
+  { return lhs | static_cast<unsigned>(rhs); }
+inline unsigned operator |(const pflag lhs, const pflag rhs)
+  { return static_cast<unsigned>(lhs) | rhs; }
+
 
 class property_info
 {
