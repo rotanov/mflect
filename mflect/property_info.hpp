@@ -30,6 +30,16 @@
 namespace mflect
 {
 
+enum class pflag : unsigned
+{
+  inplace = 0x01,
+  array = 0x02,
+  pointer = 0x04,
+};
+
+inline unsigned operator &(const int lhs, const pflag rhs)
+  { return lhs & static_cast<unsigned>(rhs); }
+
 class property_info
 {
 public:
@@ -37,8 +47,8 @@ public:
   virtual const char* type_name() const = 0;
   virtual const char* owner_type_name() const = 0;
 
-  virtual bool IsPointer() const = 0;
-  virtual bool IsArray() const = 0;
+  inline bool is_pointer() const;
+  inline bool is_array() const;
 
   virtual void SetValue(void *owner, const void *property) const = 0;
   virtual void GetValue(const void* owner, void*& value) const = 0;
@@ -50,10 +60,24 @@ public:
 
 protected:
   inline type_info::property_db_type& type_info_properties_(type_info* typeInfo);
+
+  unsigned flags_;
 };
 
 //==============================================================================
-type_info::property_db_type&property_info::type_info_properties_(type_info* typeInfo)
+bool property_info::is_pointer() const
+{
+  return flags_ & pflag::pointer;
+}
+
+//==============================================================================
+bool property_info::is_array() const
+{
+  return flags_ & pflag::array;
+}
+
+//==============================================================================
+type_info::property_db_type& property_info::type_info_properties_(type_info* typeInfo)
 {
   return typeInfo->properties_;
 }

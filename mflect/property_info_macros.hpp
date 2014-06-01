@@ -29,13 +29,14 @@
   public:                                                                      \
 
 //==============================================================================
-#define MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME)          \
+#define MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME, FLAGS)   \
     typedef TYPE value_type;                                                   \
     typedef OWNER owner_type;                                                  \
                                                                                \
     property_info_##OWNER##NAME()                                              \
     {                                                                          \
         type_info_properties_(type_info_##OWNER::instance())[#NAME] = this;    \
+        flags_ = FLAGS;                                                        \
     }                                                                          \
                                                                                \
     virtual const char* name() const                                           \
@@ -69,11 +70,11 @@
     = property_info_##OWNER##NAME::instance();                                 \
 
 //==============================================================================
-#define MFLECT_DECLARE_PROPERTY_INFO_EX(OWNER, TYPE, NAME, SETTER, GETTER)\
-    MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)\
-    MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME)\
-\
-        virtual void SetValue(void* owner, const void *property) const\
+#define MFLECT_DECLARE_PROPERTY_INFO_EX(OWNER, TYPE, NAME, SETTER, GETTER)     \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)                   \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME, 0x00)        \
+                                                                               \
+        virtual void SetValue(void* owner, const void *property) const         \
         {\
             OWNER *typedOwner = static_cast<OWNER*>(owner);\
             const TYPE *typedProperty = static_cast<const TYPE*>(property);\
@@ -83,16 +84,6 @@
         virtual void GetValue(const void *owner, void*& value) const\
         {\
             *static_cast<TYPE*>(value) = static_cast<const OWNER*>(owner)->GETTER();\
-        }\
-\
-        virtual bool IsPointer() const\
-        {\
-            return false;\
-        }\
-\
-        virtual bool IsArray() const\
-        {\
-            return false;\
         }\
 \
         virtual void PushValue(void*, void*) const\
@@ -118,9 +109,11 @@
     MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
 
 //==============================================================================
-#define MFLECT_DECLARE_ARRAY_PROPERTY_INFO_EX(OWNER, TYPE, NAME, PUSHER, GETTER, SIZEGETTER, CLEARER)\
-    MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)\
-    MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME)\
+#define MFLECT_DECLARE_ARRAY_PROPERTY_INFO_EX(OWNER, TYPE, NAME, PUSHER,       \
+  GETTER, SIZEGETTER, CLEARER)                                                 \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)                   \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME,              \
+      mflect::pflags::array)                                                   \
 \
         virtual void SetValue(void*, const void *) const\
         {\
@@ -130,16 +123,6 @@
         virtual void GetValue(const void*, void*&) const\
         {\
             MFLECT_RUNTIME_ERROR("Not implemented.")\
-        }\
-\
-        virtual bool IsPointer() const\
-        {\
-            return false;\
-        }\
-\
-        virtual bool IsArray() const\
-        {\
-            return true;\
         }\
 \
         virtual void PushValue(void *owner, void *value) const\
@@ -164,9 +147,11 @@
     MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
 
 //==============================================================================
-#define MFLECT_DECLARE_PTR_ARRAY_PROPERTY_INFO_EX(OWNER, TYPE, NAME, PUSHER, GETTER, SIZEGETTER, CLEARER)\
-    MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)\
-    MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME)\
+#define MFLECT_DECLARE_PTR_ARRAY_PROPERTY_INFO_EX(OWNER, TYPE, NAME, PUSHER,   \
+  GETTER, SIZEGETTER, CLEARER)                                                 \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)                   \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME,              \
+      mflect::pflags::array | mflect::pflags::pointer)                         \
 \
         virtual void SetValue(void*, const void*) const\
         {\
@@ -177,16 +162,6 @@
         {\
             MFLECT_RUNTIME_ERROR("Not implemented.")\
         };\
-\
-        virtual bool IsPointer() const\
-        {\
-            return true;\
-        }\
-\
-        virtual bool IsArray() const\
-        {\
-            return true;\
-        }\
 \
         virtual void PushValue(void *owner, void *value) const\
         {\
@@ -210,9 +185,10 @@
     MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
 
 //==============================================================================
-#define MFLECT_DECLARE_PTR_PROPERTY_INFO_EX(OWNER, TYPE, NAME, SETTER, GETTER)\
-    MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)\
-    MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME)\
+#define MFLECT_DECLARE_PTR_PROPERTY_INFO_EX(OWNER, TYPE, NAME, SETTER, GETTER) \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)                   \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME,              \
+      mflect::pflags::pointer)                                                 \
 \
     virtual void SetValue(void* owner, const void *property) const\
     {\
@@ -224,16 +200,6 @@
     virtual void GetValue(const void *owner, void*& value) const\
     {\
         value = static_cast<const OWNER*>(owner)->GETTER();\
-    }\
-\
-    virtual bool IsPointer() const\
-    {\
-        return true;\
-    }\
-\
-    virtual bool IsArray() const\
-    {\
-        return false;\
     }\
 \
     virtual void PushValue(void*, void*) const\

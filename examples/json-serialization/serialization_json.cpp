@@ -104,7 +104,7 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
       auto propTypeInfo = mflect::type_info::find_type_info(p.type_name());
       MFLECT_ASSERT(propTypeInfo != nullptr);
 
-      if (p.IsArray())
+      if (p.is_array())
       {
         if (p.GetArraySize(next) == 0)
         {
@@ -129,7 +129,7 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
         {
           for (unsigned j = 0; j < p.GetArraySize(next); j++)
           {
-            if (p.IsPointer())
+            if (p.is_pointer())
             {
               void* value = NULL;
               p.GetValue(next, value, j);
@@ -148,7 +148,7 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
       }
       else if (propTypeInfo->is_integral())
       {
-        if (p.IsPointer())
+        if (p.is_pointer())
         {
           void* value = NULL;
           p.GetValue(next, value);
@@ -171,7 +171,7 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
         state.writer.String(p.name());
         bool alreadySerialized = false;
         bool nullPtr = false;
-        if (p.IsPointer())
+        if (p.is_pointer())
         {
           void* value = NULL;
           p.GetValue(next, value);
@@ -209,7 +209,7 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
         if (!alreadySerialized && !nullPtr)
         {
           // TODO: seems fishy
-          if (p.IsPointer())
+          if (p.is_pointer())
           {
             void *value = NULL;
             p.GetValue(next, value);
@@ -290,7 +290,7 @@ static void* construct(rapidjson::Document::ValueType* document,
       void* value = propTypeInfo->make_new();
       construct(&(i->value), propTypeName, value);
       prop->SetValue(next, value);
-      if (!prop->IsPointer())
+      if (!prop->is_pointer())
       {
         propTypeInfo->make_delete(value);
       }
@@ -327,7 +327,7 @@ static void* construct(rapidjson::Document::ValueType* document,
           void* value = mflect::type_info::find_type_info(typeName)->make_new();
           construct(&(i->value[j]), typeName, value);
           prop->PushValue(next, value);
-          if (!prop->IsPointer())
+          if (!prop->is_pointer())
           {
             mflect::type_info::find_type_info(typeName)->make_delete(value);
           }

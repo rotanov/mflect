@@ -30,9 +30,9 @@ std::string mflect::type_info::GetTypeDescriptionString(const std::string& typeN
            identStr3 + "owner name: \"" + p.owner_type_name() + "\"" + eolStr +
            identStr3 + "valid flags: ";
 
-      if (p.IsArray())
+      if (p.is_array())
           r += "array, ";
-      if (p.IsPointer())
+      if (p.is_pointer())
           r += "pointer, ";
       r += eolStr;
   }
