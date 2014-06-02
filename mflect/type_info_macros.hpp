@@ -159,13 +159,13 @@ type_info_##TYPE* type_info_##TYPE::instance_ptr_                              \
 //==============================================================================
 #define MFLECT_INJECT_VECTOR_PROPERTY(TYPE, NAME)                              \
   public:                                                                      \
-    TYPE Get##NAME(unsigned index) const { return NAME[index]; }               \
-    void Push##NAME(const TYPE& value) { NAME.push_back(value); }              \
-    unsigned Get##NAME##Count() const { return NAME.size(); }                  \
-    void Clear##NAME() { NAME.clear(); }                                       \
+    TYPE Get##NAME(unsigned index) const { return NAME##_[index]; }            \
+    void Push##NAME(const TYPE& value) { NAME##_.push_back(value); }           \
+    unsigned Get##NAME##Count() const { return NAME##_.size(); }               \
+    void Clear##NAME() { NAME##_.clear(); }                                    \
                                                                                \
   private:                                                                     \
-    std::vector<TYPE> NAME;                                                    \
+    std::vector<TYPE> NAME##_;                                                 \
 
 //==============================================================================
 #define MFLECT_INJECT_VECTOR_PTR_PROPERTY(TYPE, NAME)                          \

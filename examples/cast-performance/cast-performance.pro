@@ -24,7 +24,7 @@ gcc {
 DESTDIR = ../../bin
 
 INCLUDEPATH += ../../ \
-  ../../tests
+  ../../extras
 
 CONFIG(debug, debug|release) {
 
@@ -37,11 +37,16 @@ CONFIG(debug, debug|release) {
 
     TARGET = cast-performance-release
 
+  msvc {
+    QMAKE_CXXFLAGS += /Zi
+    QMAKE_LFLAGS += /DEBUG
+  }
+
 }
 
 SOURCES += main.cpp \
-    ../../tests/test_classes.cpp
+    ../../extras/test_classes.cpp
 
 HEADERS += \
-    ../../tests/test_classes.hpp
+    ../../extras/test_classes.hpp
 

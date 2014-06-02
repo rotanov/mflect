@@ -21,7 +21,8 @@ win32: DEFINES += WIN32
 
 DESTDIR = ../bin
 
-INCLUDEPATH += ../
+INCLUDEPATH += ../ \
+  ../extras
 
 CONFIG(debug, debug|release) {
 
@@ -37,8 +38,8 @@ CONFIG(debug, debug|release) {
 }
 
 SOURCES += main.cpp \
-  test_classes.cpp \
-  type_info_registration.cpp
+  ../extras/test_classes.cpp \
+  ../extras/type_info_registration.cpp
 
 HEADERS += \
   test_classes.hpp

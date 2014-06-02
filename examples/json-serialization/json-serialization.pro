@@ -21,7 +21,8 @@ gcc {
 
 DESTDIR = ../../bin
 
-INCLUDEPATH += ../../
+INCLUDEPATH += ../../ \
+  ../../extras
 
 CONFIG(debug, debug|release) {
 
@@ -34,10 +35,15 @@ CONFIG(debug, debug|release) {
 
   TARGET = json-serialization-release
 
+  msvc {
+    QMAKE_CXXFLAGS += /Zi
+    QMAKE_LFLAGS += /DEBUG
+  }
+
 }
 
 SOURCES += main.cpp \
-    serialization_json.cpp
+    ../../extras/serialization_json.cpp
 
 HEADERS += \
     serialization_json.hpp

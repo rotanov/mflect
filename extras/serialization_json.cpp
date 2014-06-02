@@ -243,7 +243,6 @@ static void* construct(rapidjson::Document::ValueType* document,
 {
   bool isObject = document->IsObject();
   mflect::type_info* typeInfo = mflect::type_info::find_type_info(nextName);
-  //void *next = typeInfo->New();
 
   for (rapidjson::Document::ValueType::MemberIterator i
          = document->MemberBegin();
@@ -252,7 +251,8 @@ static void* construct(rapidjson::Document::ValueType* document,
   {
     std::string propertyName = i->name.GetString();
 
-    if (propertyName.length() > 0 && propertyName[0] == '@')
+    if (propertyName.length() > 0
+        && propertyName[0] == '@')
     {
       if (propertyName == std::string("@type"))
       {
@@ -265,7 +265,8 @@ static void* construct(rapidjson::Document::ValueType* document,
 
     if (prop == NULL)
     {
-      MFLECT_RUNTIME_ERROR("property: " + propertyName + " not found for type: " + typeInfo->name());
+      MFLECT_RUNTIME_ERROR("property: " + propertyName
+                           + " not found for type: " + typeInfo->name());
     }
 
     if (i->value.IsObject())

@@ -47,16 +47,30 @@ inline unsigned operator |(const unsigned lhs, const pflag rhs)
 inline unsigned operator |(const pflag lhs, const pflag rhs)
   { return static_cast<unsigned>(lhs) | rhs; }
 
-
 class property_info
 {
 public:
+  /**
+   * @brief name
+   * @return property name as it was passed to declaration macro.
+   */
   virtual const char* name() const = 0;
+
+  /**
+   * @brief type_name
+   * @return type name of property disregarding flags
+   */
   virtual const char* type_name() const = 0;
+
+  /**
+   * @brief owner_type_name
+   * @return type name of owner
+   */
   virtual const char* owner_type_name() const = 0;
 
   inline bool is_pointer() const;
   inline bool is_array() const;
+  inline bool is_inplace() const;
 
   virtual void SetValue(void *owner, const void *property) const = 0;
   virtual void GetValue(const void* owner, void*& value) const = 0;
@@ -82,6 +96,12 @@ bool property_info::is_pointer() const
 bool property_info::is_array() const
 {
   return flags_ & pflag::array;
+}
+
+//==============================================================================
+bool property_info::is_inplace() const
+{
+  return flags_ & pflag::inplace;
 }
 
 //==============================================================================
