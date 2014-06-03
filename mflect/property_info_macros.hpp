@@ -101,7 +101,7 @@
       typedOwner->SETTER(*typedProperty);                                      \
     }                                                                          \
                                                                                \
-    virtual void get_inplace(void* owner, void*& value) const                  \
+    virtual void get_value_inplace(void* owner, void*& value) const            \
     {                                                                          \
       value = &static_cast<OWNER*>(owner)->GETTER();                           \
     }                                                                          \
