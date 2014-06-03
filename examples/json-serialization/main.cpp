@@ -75,7 +75,7 @@ class Foo
 public:
   Foo()
   {
-    for (int i = 0; i < 1000000; i++)
+    for (int i = 0; i < 100000; i++)
     {
       Vector3 v3;
       v3.x = rand();

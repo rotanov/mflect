@@ -94,10 +94,10 @@ int main()
     TEST(TYPE_INFO(Vector2)->find_property("Y") != nullptr);
     float value = 0.0f;
     void* ptrValue = &value;
-    TYPE_INFO(Vector2)->find_property("X")->GetValue(&foo, ptrValue);
+    TYPE_INFO(Vector2)->find_property("X")->get_value(&foo, ptrValue);
     TEST(value == 2.0f);
     value = 4.0f;
-    TYPE_INFO(Vector2)->find_property("X")->SetValue(&foo, &value);
+    TYPE_INFO(Vector2)->find_property("X")->set_value(&foo, &value);
     TEST(foo.x == 4.0f);
     auto def_attr = mflect::property_attribute_default::get(TYPE_INFO(Vector2)->find_property("Y"));
     TEST(def_attr != nullptr)
