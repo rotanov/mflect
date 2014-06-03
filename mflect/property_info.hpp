@@ -72,16 +72,19 @@ public:
   inline bool is_array() const;
   inline bool is_inplace() const;
 
-  virtual void SetValue(void *owner, const void *property) const = 0;
-  virtual void GetValue(const void* owner, void*& value) const = 0;
-  virtual void PushValue(void* owner, void* value) const = 0;
-  virtual void GetValue(const void* owner, void*& value, unsigned index) const = 0;
+  inline virtual void set_value(void* owner, const void* property) const;
+  inline virtual void get_value(const void* owner, void*& value) const;
+  inline virtual void get_value_inplace(void* owner, void*& value) const;
 
-  virtual unsigned GetArraySize(const void* owner) const = 0;
-  virtual void Clear(void* owner) const = 0;
+  inline virtual void push_value(void* owner, void* value) const;
+  inline virtual void get_value(const void* owner, void*& value, unsigned index) const;
+
+  inline virtual unsigned array_size(const void* owner) const;
+  inline virtual void clear(void* owner) const;
 
 protected:
   inline type_info::property_db_type& type_info_properties_(type_info* typeInfo);
+  inline void not_implemented_(const std::string what) const;
 
   unsigned flags_;
 };
@@ -105,9 +108,59 @@ bool property_info::is_inplace() const
 }
 
 //==============================================================================
+void property_info::set_value(void* owner, const void* property) const
+{
+  not_implemented_(__FUNCTION__);
+}
+
+//==============================================================================
+void property_info::get_value(const void* owner, void*& value) const
+{
+  not_implemented_(__FUNCTION__);
+}
+
+//==============================================================================
+void property_info::get_value_inplace(void* owner, void*& value) const
+{
+  not_implemented_(__FUNCTION__);
+}
+
+//==============================================================================
+void property_info::push_value(void* owner, void* value) const
+{
+  not_implemented_(__FUNCTION__);
+}
+
+//==============================================================================
+void property_info::get_value(const void* owner, void*& value, unsigned index) const
+{
+  not_implemented_(__FUNCTION__);
+}
+
+//==============================================================================
+unsigned property_info::array_size(const void* owner) const
+{
+  not_implemented_(__FUNCTION__);
+  return 0;
+}
+
+//==============================================================================
+void property_info::clear(void* owner) const
+{
+  not_implemented_(__FUNCTION__);
+}
+
+//==============================================================================
 type_info::property_db_type& property_info::type_info_properties_(type_info* typeInfo)
 {
   return typeInfo->properties_;
+}
+
+//==============================================================================
+void property_info::not_implemented_(const std::string what) const
+{
+  MFLECT_RUNTIME_ERROR(std::string(owner_type_name()) + ":" +
+                       std::string(name()) + ":" + what + " not imlpemented");
 }
 
 } // namespace mflect

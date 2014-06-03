@@ -105,7 +105,7 @@ property_attribute_default::db_type& property_attribute_default::db_()
     {                                                                          \
       value_type value;                                                        \
       void* ptr = &value;                                                      \
-      propertyInfo_->GetValue(owner, ptr);                                     \
+      propertyInfo_->get_value(owner, ptr);                                    \
       return value == defaultValue_;                                           \
     }                                                                          \
                                                                                \

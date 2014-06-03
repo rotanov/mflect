@@ -392,7 +392,9 @@ void type_info::register_type_info_(const std::string& typeName, type_info* type
   auto& db = type_info::db_();
   if (db.find(typeName) != db.end())
   {
-    MFLECT_RUNTIME_ERROR("type_info record for type " + typeName + " has already been registered");
+    MFLECT_RUNTIME_ERROR("type_info record for type "
+                         + typeName
+                         + " has already been registered");
     return;
   }
   db[typeName] = typeInfo;
