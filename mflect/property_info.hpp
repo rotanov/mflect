@@ -108,44 +108,45 @@ bool property_info::is_inplace() const
 }
 
 //==============================================================================
-void property_info::set_value(void* owner, const void* property) const
+void property_info::set_value(void* /*owner*/, const void* /*property*/) const
 {
   not_implemented_(__FUNCTION__);
 }
 
 //==============================================================================
-void property_info::get_value(const void* owner, void*& value) const
+void property_info::get_value(const void* /*owner*/, void*& /*value*/) const
 {
   not_implemented_(__FUNCTION__);
 }
 
 //==============================================================================
-void property_info::get_value_inplace(void* owner, void*& value) const
+void property_info::get_value_inplace(void* /*owner*/, void*& /*value*/) const
 {
   not_implemented_(__FUNCTION__);
 }
 
 //==============================================================================
-void property_info::push_value(void* owner, void* value) const
+void property_info::push_value(void* /*owner*/, void* /*value*/) const
 {
   not_implemented_(__FUNCTION__);
 }
 
 //==============================================================================
-void property_info::get_value(const void* owner, void*& value, unsigned index) const
+void property_info::get_value(const void* /*owner*/, void*& /*value*/,
+                              unsigned /*index*/) const
 {
   not_implemented_(__FUNCTION__);
 }
 
 //==============================================================================
-unsigned property_info::array_size(const void* owner) const
+unsigned property_info::array_size(const void* /*owner*/) const
 {
   not_implemented_(__FUNCTION__);
   return 0;
 }
 
 //==============================================================================
-void property_info::clear(void* owner) const
+void property_info::clear(void* /*owner*/) const
 {
   not_implemented_(__FUNCTION__);
 }
