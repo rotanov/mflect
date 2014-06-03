@@ -74,39 +74,44 @@
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)                   \
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME, 0x00)        \
                                                                                \
-        virtual void SetValue(void* owner, const void *property) const         \
-        {\
-            OWNER *typedOwner = static_cast<OWNER*>(owner);\
-            const TYPE *typedProperty = static_cast<const TYPE*>(property);\
-            typedOwner->SETTER(*typedProperty);\
-        }\
-\
-        virtual void GetValue(const void *owner, void*& value) const\
-        {\
-            *static_cast<TYPE*>(value) = static_cast<const OWNER*>(owner)->GETTER();\
-        }\
-\
-        virtual void PushValue(void*, void*) const\
-        {\
-            MFLECT_RUNTIME_ERROR("Not implemented.")\
-        }\
-\
-        virtual unsigned GetArraySize(const void*) const\
-        {\
-            MFLECT_RUNTIME_ERROR("Not implemented.")\
-        }\
-\
-        virtual void GetValue(const void*, void*&, unsigned) const\
-        {\
-            MFLECT_RUNTIME_ERROR("Not implemented.")\
-        }\
-\
-        virtual void Clear(void* /*owner*/) const\
-        {\
-            MFLECT_RUNTIME_ERROR("Not implemented.")\
-        }\
-\
-    MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
+    virtual void set_value(void* owner, const void* value) const               \
+    {                                                                          \
+      OWNER *typedOwner = static_cast<OWNER*>(owner);                          \
+      const TYPE* typedProperty = static_cast<const TYPE*>(value);             \
+      typedOwner->SETTER(*typedProperty);                                      \
+    }                                                                          \
+                                                                               \
+    virtual void get_value(const void* owner, void*& value) const              \
+    {                                                                          \
+      *static_cast<TYPE*>(value) = static_cast<const OWNER*>(owner)->GETTER(); \
+    }                                                                          \
+                                                                               \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)                     \
+
+//==============================================================================
+#define MFLECT_DECLARE_PROPERTY_INFO_INPLACE(OWNER, TYPE, NAME, SETTER, GETTER)\
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)                   \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME,              \
+      mflect::pflag::inplace & mflect::pflag::identity_mask)                   \
+                                                                               \
+    virtual void set_value(void* owner, const void *value) const               \
+    {                                                                          \
+      OWNER* typedOwner = static_cast<OWNER*>(owner);                          \
+      const TYPE* typedProperty = static_cast<const TYPE*>(value);             \
+      typedOwner->SETTER(*typedProperty);                                      \
+    }                                                                          \
+                                                                               \
+    virtual void get_inplace(void* owner, void*& value) const                  \
+    {                                                                          \
+      value = &static_cast<OWNER*>(owner)->GETTER();                           \
+    }                                                                          \
+                                                                               \
+    virtual void get_value(const void* owner, void*& value) const              \
+    {                                                                          \
+      *static_cast<TYPE*>(value) = static_cast<const OWNER*>(owner)->GETTER(); \
+    }                                                                          \
+                                                                               \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)                     \
 
 //==============================================================================
 #define MFLECT_DECLARE_ARRAY_PROPERTY_INFO_EX(OWNER, TYPE, NAME, PUSHER,       \
@@ -114,37 +119,29 @@
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)                   \
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME,              \
       mflect::pflag::array & mflect::pflag::identity_mask)                     \
-\
-        virtual void SetValue(void*, const void *) const\
-        {\
-            MFLECT_RUNTIME_ERROR("Not implemented.")\
-        }\
-\
-        virtual void GetValue(const void*, void*&) const\
-        {\
-            MFLECT_RUNTIME_ERROR("Not implemented.")\
-        }\
-\
-        virtual void PushValue(void *owner, void *value) const\
-        {\
-            static_cast<OWNER*>(owner)->PUSHER(*(static_cast<TYPE*>(value)));\
-        }\
-\
-        virtual unsigned GetArraySize(const void *owner) const\
-        {\
-            return static_cast<const OWNER*>(owner)->SIZEGETTER();\
-        }\
-\
-        virtual void GetValue(const void *owner, void*& value, unsigned index) const\
-        {\
-            *static_cast<TYPE*>(value) = static_cast<const OWNER*>(owner)->GETTER(index);\
-        }\
-\
-        virtual void Clear(void* owner) const\
-        {\
-            static_cast<OWNER*>(owner)->CLEARER();\
-        }\
-    MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
+                                                                               \
+    virtual void push_value(void* owner, void* value) const                    \
+    {                                                                          \
+      static_cast<OWNER*>(owner)->PUSHER(*(static_cast<TYPE*>(value)));        \
+    }                                                                          \
+                                                                               \
+    virtual unsigned array_size(const void* owner) const                       \
+    {                                                                          \
+      return static_cast<const OWNER*>(owner)->SIZEGETTER();                   \
+    }                                                                          \
+                                                                               \
+    virtual void get_value(const void* owner, void*& value, unsigned index) const\
+    {                                                                          \
+      *static_cast<TYPE*>(value) =                                             \
+        static_cast<const OWNER*>(owner)->GETTER(index);                       \
+    }                                                                          \
+                                                                               \
+    virtual void clear(void* owner) const                                      \
+    {                                                                          \
+      static_cast<OWNER*>(owner)->CLEARER();                                   \
+    }                                                                          \
+                                                                               \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)                     \
 
 //==============================================================================
 #define MFLECT_DECLARE_PTR_ARRAY_PROPERTY_INFO_EX(OWNER, TYPE, NAME, PUSHER,   \
@@ -152,83 +149,54 @@
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)                   \
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME,              \
       mflect::pflag::array | mflect::pflag::pointer)                           \
-\
-        virtual void SetValue(void*, const void*) const\
-        {\
-            MFLECT_RUNTIME_ERROR("Not implemented.")\
-        }\
-\
-        void GetValue(const void*, void*&) const\
-        {\
-            MFLECT_RUNTIME_ERROR("Not implemented.")\
-        };\
-\
-        virtual void PushValue(void *owner, void *value) const\
-        {\
-            static_cast<OWNER*>(owner)->PUSHER(static_cast<TYPE*>(value));\
-        }\
-\
-        virtual unsigned GetArraySize(const void *owner) const\
-        {\
-            return static_cast<const OWNER*>(owner)->SIZEGETTER();\
-        }\
-\
-        virtual void GetValue(const void *owner, void*& value, unsigned index) const\
-        {\
-            value = static_cast<const OWNER*>(owner)->GETTER(index);\
-        }\
-\
-        virtual void Clear(void* owner) const\
-        {\
-            static_cast<OWNER*>(owner)->CLEARER();\
-        }\
-    MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
+                                                                               \
+    virtual void push_value(void* owner, void* value) const                    \
+    {                                                                          \
+      static_cast<OWNER*>(owner)->PUSHER(static_cast<TYPE*>(value));           \
+    }                                                                          \
+                                                                               \
+    virtual unsigned array_size(const void *owner) const                       \
+    {                                                                          \
+      return static_cast<const OWNER*>(owner)->SIZEGETTER();                   \
+    }                                                                          \
+                                                                               \
+    virtual void get_value(const void* owner, void*& value, unsigned index) const\
+    {                                                                          \
+      value = static_cast<const OWNER*>(owner)->GETTER(index);                 \
+    }                                                                          \
+                                                                               \
+    virtual void clear(void* owner) const                                      \
+    {                                                                          \
+      static_cast<OWNER*>(owner)->CLEARER();                                   \
+    }                                                                          \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)                     \
 
 //==============================================================================
 #define MFLECT_DECLARE_PTR_PROPERTY_INFO_EX(OWNER, TYPE, NAME, SETTER, GETTER) \
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BEGIN_(OWNER, NAME)                   \
     MFLECT_INTERNAL_PROPERTY_DECLARATION_BASE_(OWNER, TYPE, NAME,              \
       mflect::pflag::pointer & mflect::pflag::identity_mask)                   \
-\
-    virtual void SetValue(void* owner, const void *property) const\
-    {\
-        OWNER *typedOwner = static_cast<OWNER*>(owner);\
-        const TYPE *typedProperty = static_cast<const TYPE*>(property);\
-        typedOwner->SETTER(typedProperty);\
-    }\
-\
-    virtual void GetValue(const void *owner, void*& value) const\
-    {\
-        value = static_cast<const OWNER*>(owner)->GETTER();\
-    }\
-\
-    virtual void PushValue(void*, void*) const\
-    {\
-        MFLECT_RUNTIME_ERROR("Not implemented.")\
-    }\
-\
-    virtual unsigned GetArraySize(const void*) const\
-    {\
-        MFLECT_RUNTIME_ERROR("Not implemented.")\
-    }\
-\
-    virtual void* GetValue(const void*, void*&, unsigned) const\
-    {\
-        MFLECT_RUNTIME_ERROR("Not implemented.")\
-    }\
-\
-    virtual void Clear(void* /*owner*/) const\
-    {\
-        MFLECT_RUNTIME_ERROR("Not implemented.")\
-    }\
-    MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)\
+                                                                               \
+    virtual void set_value(void* owner, const void* value) const               \
+    {                                                                          \
+      OWNER* typedOwner = static_cast<OWNER*>(owner);                          \
+      const TYPE* typedProperty = static_cast<const TYPE*>(value);             \
+      typedOwner->SETTER(typedProperty);                                       \
+    }                                                                          \
+                                                                               \
+    virtual void get_value(const void *owner, void*& value) const              \
+    {                                                                          \
+      value = static_cast<const OWNER*>(owner)->GETTER();                      \
+    }                                                                          \
+                                                                               \
+    MFLECT_INTERNAL_PROPERTY_DECLARATION_END_(OWNER, NAME)                     \
 
 //==============================================================================
-#define MFLECT_DECLARE_PTR_PROPERTY_INFO(OWNER, TYPE, NAME)\
-    MFLECT_DECLARE_PTR_PROPERTY_INFO_EX(OWNER, TYPE, NAME, Set##NAME, Get##NAME)\
+#define MFLECT_DECLARE_PTR_PROPERTY_INFO(OWNER, TYPE, NAME) \
+  MFLECT_DECLARE_PTR_PROPERTY_INFO_EX(OWNER, TYPE, NAME, Set##NAME, Get##NAME) \
 
 //==============================================================================
-#define MFLECT_DECLARE_PROPERTY_INFO(OWNER, TYPE, NAME)\
-    MFLECT_DECLARE_PROPERTY_INFO_EX(OWNER, TYPE, NAME, Set##NAME, Get##NAME)\
+#define MFLECT_DECLARE_PROPERTY_INFO(OWNER, TYPE, NAME) \
+  MFLECT_DECLARE_PROPERTY_INFO_EX(OWNER, TYPE, NAME, Set##NAME, Get##NAME) \
 
 

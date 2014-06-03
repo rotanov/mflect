@@ -106,7 +106,7 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
 
       if (p.is_array())
       {
-        if (p.GetArraySize(next) == 0)
+        if (p.array_size(next) == 0)
         {
           continue;
         }
@@ -116,29 +116,29 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
 
         if(propTypeInfo->is_integral())
         {
-          for (unsigned j = 0; j < p.GetArraySize(next); j++)
+          for (unsigned j = 0; j < p.array_size(next); j++)
           {
             // TODO: missing array of pointers to integrals like std::vector<int*>
             void* value = propTypeInfo->make_new();
-            p.GetValue(next, value, j);
+            p.get_value(next, value, j);
             state.writer.String(propTypeInfo->to_string(value).c_str());
             propTypeInfo->make_delete(value);
           }
         }
         else
         {
-          for (unsigned j = 0; j < p.GetArraySize(next); j++)
+          for (unsigned j = 0; j < p.array_size(next); j++)
           {
             if (p.is_pointer())
             {
               void* value = NULL;
-              p.GetValue(next, value, j);
+              p.get_value(next, value, j);
               make_json(state, value, propTypeInfo->name());
             }
             else
             {
               void* value = propTypeInfo->make_new();
-              p.GetValue(next, value, j);
+              p.get_value(next, value, j);
               make_json(state, value, propTypeInfo->name());
               propTypeInfo->make_delete(value);
             }
@@ -151,7 +151,7 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
         if (p.is_pointer())
         {
           void* value = NULL;
-          p.GetValue(next, value);
+          p.get_value(next, value);
           std::string stringValue = propTypeInfo->to_string(value);
           state.writer.String(p.name());
           state.writer.String(stringValue.c_str());
@@ -159,7 +159,7 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
         else
         {
           void* value = propTypeInfo->make_new();
-          p.GetValue(next, value);
+          p.get_value(next, value);
           std::string stringValue = propTypeInfo->to_string(value);
           state.writer.String(p.name());
           state.writer.String(stringValue.c_str());
@@ -174,7 +174,7 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
         if (p.is_pointer())
         {
           void* value = NULL;
-          p.GetValue(next, value);
+          p.get_value(next, value);
 
           if (value == 0)
           {
@@ -212,14 +212,14 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
           if (p.is_pointer())
           {
             void *value = NULL;
-            p.GetValue(next, value);
+            p.get_value(next, value);
             make_json(state, value, p.type_name());
             state.writer.EndObject();
           }
           else
           {
             void *value = propTypeInfo->make_new();
-            p.GetValue(next, value);
+            p.get_value(next, value);
             make_json(state, value, p.type_name());
             propTypeInfo->make_delete(value);
           }
@@ -288,12 +288,25 @@ static void* construct(rapidjson::Document::ValueType* document,
         }
       }
 
-      void* value = propTypeInfo->make_new();
-      construct(&(i->value), propTypeName, value);
-      prop->SetValue(next, value);
-      if (!prop->is_pointer())
+      void* value = nullptr;
+      if (prop->is_inplace())
       {
-        propTypeInfo->make_delete(value);
+        prop->get_value_inplace(next, value);
+      }
+      else
+      {
+        value = propTypeInfo->make_new();
+      }
+
+      construct(&(i->value), propTypeName, value);
+
+      if (!prop->is_inplace())
+      {
+        prop->set_value(next, value);
+        if (!prop->is_pointer())
+        {
+          propTypeInfo->make_delete(value);
+        }
       }
     }
     else if (i->value.IsArray())
@@ -306,7 +319,7 @@ static void* construct(rapidjson::Document::ValueType* document,
           auto *tempTypeInfo = mflect::type_info::find_type_info(prop->type_name());
           void *temp = tempTypeInfo->make_new();
           tempTypeInfo->from_string(temp, i->value[j].GetString());
-          prop->PushValue(next, temp);
+          prop->push_value(next, temp);
           tempTypeInfo->make_delete(temp);
         }
       }
@@ -327,7 +340,7 @@ static void* construct(rapidjson::Document::ValueType* document,
           }
           void* value = mflect::type_info::find_type_info(typeName)->make_new();
           construct(&(i->value[j]), typeName, value);
-          prop->PushValue(next, value);
+          prop->push_value(next, value);
           if (!prop->is_pointer())
           {
             mflect::type_info::find_type_info(typeName)->make_delete(value);
@@ -337,11 +350,28 @@ static void* construct(rapidjson::Document::ValueType* document,
     }
     else
     {
-      auto tempTypeInfo = mflect::type_info::find_type_info(prop->type_name());
-      void *temp = tempTypeInfo->make_new();
-      tempTypeInfo->from_string(temp, i->value.GetString());
-      prop->SetValue(next, temp);
-      tempTypeInfo->make_delete(temp);
+      auto propTypeInfo = mflect::type_info::find_type_info(prop->type_name());
+
+      void* value = nullptr;
+      if (prop->is_inplace())
+      {
+        prop->get_value_inplace(next, value);
+      }
+      else
+      {
+        value = propTypeInfo->make_new();
+      }
+
+      propTypeInfo->from_string(value, i->value.GetString());
+
+      if (!prop->is_inplace())
+      {
+        prop->set_value(next, value);
+        if (!prop->is_pointer())
+        {
+          propTypeInfo->make_delete(value);
+        }
+      }
     }
   }
   return next;
