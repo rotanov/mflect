@@ -321,7 +321,10 @@ void type_info::initialize()
     {
       if (db().find(baseName) == db().end())
       {
-        MFLECT_RUNTIME_ERROR("no type_info record for base type: " + baseName);
+        // this is considered fatal
+        std::cerr << "no type_info record for base type: " << baseName << std::endl;
+        ::abort();
+        return;
       }
       typeInfo->baseTypeInfo_ = db().at(baseName);
       i.second->base()->hasDerived_ = true;
@@ -392,9 +395,10 @@ void type_info::register_type_info_(const std::string& typeName, type_info* type
   auto& db = type_info::db_();
   if (db.find(typeName) != db.end())
   {
-    MFLECT_RUNTIME_ERROR("type_info record for type "
-                         + typeName
-                         + " has already been registered");
+    // duplicated type_info entry considered fatal
+    std::cerr << "type_info record for type " << typeName
+              << " has already been registered" << std::endl;
+    ::abort();
     return;
   }
   db[typeName] = typeInfo;
