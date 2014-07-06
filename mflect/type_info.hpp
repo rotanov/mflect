@@ -132,20 +132,20 @@ public:
    * @param name
    * @return
    */
-  inline property_info *find_property(const std::string &name) const;
+  inline property_info *find_property(const std::string& name) const;
 
   /**
    * @brief GetRunTimeTypeInfo
    * @return
    */
-  inline virtual type_info* type_info_run_time(const void*instance) const;
+  inline virtual type_info* type_info_run_time(const void* instance) const;
 
   /**
    * @brief find_type_info
    * @param typeName
    * @return
    */
-  inline static type_info* find_type_info(const std::string &typeName);
+  inline static type_info* find_type_info(const std::string& typeName);
 
   /**
    * @brief Initialize
