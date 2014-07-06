@@ -3,7 +3,9 @@
 #include <functional>
 #include <ctime>
 #include <iostream>
-
+#include <limits>
+#include <algorithm>
+#include <type_traits>
 #include "mflect/mflect.hpp"
 
 #include "test_classes.hpp"
@@ -12,6 +14,9 @@ void SetHighPriority();
 
 #if defined(WIN32) || defined(_WIN32)
 #include "windows.h"
+// because windows.h defines min/max somewhere
+#undef min
+#undef max
 
 void SetHighPriority()
 {
@@ -30,16 +35,16 @@ int main(int /*argc*/, char* /*argv*/[])
   auto measure = [](std::function<void()> f)
   {
     const int totalAttempts = 10;
-    double total = 0.0;
+    double minTime = std::numeric_limits<double>::max();
     for (int tries = 0; tries < totalAttempts; tries++)
     {
       std::cout << tries << "..";
       clock_t begin = clock();
       f();
       clock_t end = clock();
-      total += double(end - begin) / CLOCKS_PER_SEC;
+      minTime = std::min(double(end - begin) / CLOCKS_PER_SEC, minTime);
     }
-    std::cout << "elapsed " << total / totalAttempts << std::endl;
+    std::cout << "elapsed " << minTime << std::endl;
   };
 
   F_E f_e_inst;
