@@ -131,7 +131,7 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
           {
             if (p.is_pointer())
             {
-              void* value = NULL;
+              void* value = nullptr;
               p.get_value(next, value, j);
               make_json(state, value, propTypeInfo->name());
             }
@@ -150,7 +150,7 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
       {
         if (p.is_pointer())
         {
-          void* value = NULL;
+          void* value = nullptr;
           p.get_value(next, value);
           std::string stringValue = propTypeInfo->to_string(value);
           state.writer.String(p.name());
@@ -173,7 +173,7 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
         bool nullPtr = false;
         if (p.is_pointer())
         {
-          void* value = NULL;
+          void* value = nullptr;
           p.get_value(next, value);
 
           if (value == 0)
@@ -211,7 +211,7 @@ static void make_json(CStateInfo& state, const void* next, const std::string &ne
           // TODO: seems fishy
           if (p.is_pointer())
           {
-            void *value = NULL;
+            void *value = nullptr;
             p.get_value(next, value);
             make_json(state, value, p.type_name());
             state.writer.EndObject();
@@ -263,7 +263,7 @@ static void* construct(rapidjson::Document::ValueType* document,
 
     auto* prop = typeInfo->find_property(propertyName);
 
-    if (prop == NULL)
+    if (prop == nullptr)
     {
       MFLECT_RUNTIME_ERROR("property: " + propertyName
                            + " not found for type: " + typeInfo->name());
