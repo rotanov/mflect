@@ -382,7 +382,7 @@ unsigned to_json(const void* instance, const std::string& typeName, char*& buffe
   MFLECT_ASSERT(buffer == nullptr);
   CStateInfo state;
   make_json(state, instance, typeName);
-  unsigned bufferSize = state.stringBuffer.Size();
+  unsigned bufferSize = state.stringBuffer.GetSize();
   buffer = new char [bufferSize + 1];
   memcpy(buffer, state.stringBuffer.GetString(), bufferSize);
   buffer[bufferSize] = 0;

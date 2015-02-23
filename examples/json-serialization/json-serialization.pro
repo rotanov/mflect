@@ -22,7 +22,8 @@ gcc {
 DESTDIR = ../../bin
 
 INCLUDEPATH += ../../ \
-  ../../extras
+  ../../extras \
+  ../../extras/rapidjson/include
 
 CONFIG(debug, debug|release) {
 
