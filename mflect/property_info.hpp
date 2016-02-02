@@ -92,19 +92,19 @@ protected:
 //==============================================================================
 bool property_info::is_pointer() const
 {
-  return flags_ & pflag::pointer;
+  return (flags_ & pflag::pointer) > 0;
 }
 
 //==============================================================================
 bool property_info::is_array() const
 {
-  return flags_ & pflag::array;
+  return (flags_ & pflag::array) > 0;
 }
 
 //==============================================================================
 bool property_info::is_inplace() const
 {
-  return flags_ & pflag::inplace;
+  return (flags_ & pflag::inplace) > 0;
 }
 
 //==============================================================================
